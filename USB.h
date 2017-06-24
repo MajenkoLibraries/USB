@@ -16,6 +16,8 @@ struct bdt
 struct epBuffer {
 	uint8_t *rx[2];
 	uint8_t *tx[2];
+	uint8_t data;
+	uint8_t txAB;
 };
 
 #define EP_IN 0
@@ -34,11 +36,19 @@ class USBDriver {
 		virtual bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type) = 0;
 		virtual bool enqueuePacket(uint8_t ep, uint8_t *data, uint32_t len, uint8_t d01) = 0;
 		virtual bool setAddress(uint8_t address) = 0;
-		virtual bool onReceivePacket(void (*func)(uint8_t ep, uint8_t *data, uint32_t len)) {
-			_onReceivePacket = func;
+		virtual bool onInPacket(void (*func)(uint8_t ep, uint8_t *data, uint32_t len)) {
+			_onInPacket = func;
+		}
+		virtual bool onOutPacket(void (*func)(uint8_t ep, uint8_t *data, uint32_t len)) {
+			_onOutPacket = func;
+		}
+		virtual bool onSetupPacket(void (*func)(uint8_t ep, uint8_t *data, uint32_t len)) {
+			_onSetupPacket = func;
 		}
 
-		void (*_onReceivePacket)(uint8_t, uint8_t *, uint32_t);
+		void (*_onInPacket)(uint8_t, uint8_t *, uint32_t);
+		void (*_onOutPacket)(uint8_t, uint8_t *, uint32_t);
+		void (*_onSetupPacket)(uint8_t, uint8_t *, uint32_t);
 };
 
 class USBFS : public USBDriver {
@@ -59,7 +69,7 @@ class USBFS : public USBDriver {
 
 		void handleInterrupt();
 
-		__attribute__ ((aligned(512))) volatile struct bdt _bufferDescriptorTable[64];
+		__attribute__ ((aligned(512))) volatile struct bdt _bufferDescriptorTable[16][4];
 
 };
 
