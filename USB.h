@@ -67,6 +67,11 @@ class USBFS : public USBDriver {
 		virtual bool enqueuePacket(uint8_t ep, uint8_t *data, uint32_t len, uint8_t d01);
 		virtual bool setAddress(uint8_t address);
 
+        char debugLog[10][80];
+        void initDebug();
+        void updateDebug();
+        void log(const char *);
+
 		void handleInterrupt();
 
 		__attribute__ ((aligned(512))) volatile struct bdt _bufferDescriptorTable[16][4];
@@ -77,7 +82,7 @@ class USBManager {
 	private:
 		// Private functions and variables here
 	public:
-		USBManager();
+		USBManager() {}
 };
 
 #endif
