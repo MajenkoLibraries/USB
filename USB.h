@@ -18,6 +18,8 @@ struct epBuffer {
 	uint8_t *tx[2];
 	uint8_t data;
 	uint8_t txAB;
+    uint32_t length;
+    const uint8_t *buffer;
 };
 
 #define EP_IN 0
@@ -34,7 +36,9 @@ class USBDriver {
 		virtual bool enableUSB() = 0;
 		virtual bool disableUSB() = 0;
 		virtual bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type) = 0;
-		virtual bool enqueuePacket(uint8_t ep, uint8_t *data, uint32_t len, uint8_t d01) = 0;
+		virtual bool enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) = 0;
+        virtual bool canEnqueuePacket(uint8_t ep) = 0;
+        virtual bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) = 0;
 		virtual bool setAddress(uint8_t address) = 0;
 		virtual bool onInPacket(void (*func)(uint8_t ep, uint8_t *data, uint32_t len)) {
 			_onInPacket = func;
@@ -64,8 +68,11 @@ class USBFS : public USBDriver {
 		virtual bool enableUSB();
 		virtual bool disableUSB();
 		virtual bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type);
-		virtual bool enqueuePacket(uint8_t ep, uint8_t *data, uint32_t len, uint8_t d01);
+		virtual bool enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len);
 		virtual bool setAddress(uint8_t address);
+        virtual bool canEnqueuePacket(uint8_t ep);
+        virtual bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len);
+
 
         char debugLog[10][80];
         void initDebug();

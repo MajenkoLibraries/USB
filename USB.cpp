@@ -5,7 +5,7 @@
 #define PA_TO_KVA0(pa)  ((pa) | 0x80000000)  // cachable
 #define PA_TO_KVA1(pa)  ((pa) | 0xa000000
 
-void dumpPacket(uint8_t *data, uint32_t l) {
+void dumpPacket(const uint8_t *data, uint32_t l) {
     for (int i = 0; i < l; i++) {
         Serial.print(data[i], HEX);
         Serial.write(' ');
@@ -13,69 +13,11 @@ void dumpPacket(uint8_t *data, uint32_t l) {
     Serial.println();
 }
 
-void USBFS::initDebug() {
-    Serial.print("\e[2J\e[1;1H");
-    Serial.println("0 -");
-    Serial.println("1 -");
-    Serial.println("2 BSTALL");
-    Serial.println("3 DTS");
-    Serial.println("4 NINC");
-    Serial.println("5 KEEP");
-    Serial.println("6 DATA0/1");
-    Serial.println("7 UOWN");
-    memset(debugLog, ' ', 80*10);
-}
-
-void USBFS::updateDebug() {
-    return;
-    Serial.print("\e[1;11H");
-    Serial.print(_bufferDescriptorTable[0][0].flags & 0x01 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][1].flags & 0x01 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][2].flags & 0x01 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][3].flags & 0x01 ? "1 " : ". ");
-    Serial.print("\e[2;11H");
-    Serial.print(_bufferDescriptorTable[0][0].flags & 0x02 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][1].flags & 0x02 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][2].flags & 0x02 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][3].flags & 0x02 ? "1 " : ". ");
-    Serial.print("\e[3;11H");
-    Serial.print(_bufferDescriptorTable[0][0].flags & 0x04 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][1].flags & 0x04 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][2].flags & 0x04 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][3].flags & 0x04 ? "1 " : ". ");
-    Serial.print("\e[4;11H");
-    Serial.print(_bufferDescriptorTable[0][0].flags & 0x08 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][1].flags & 0x08 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][2].flags & 0x08 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][3].flags & 0x08 ? "1 " : ". ");
-    Serial.print("\e[5;11H");
-    Serial.print(_bufferDescriptorTable[0][0].flags & 0x10 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][1].flags & 0x10 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][2].flags & 0x10 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][3].flags & 0x10 ? "1 " : ". ");
-    Serial.print("\e[6;11H");
-    Serial.print(_bufferDescriptorTable[0][0].flags & 0x20 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][1].flags & 0x20 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][2].flags & 0x20 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][3].flags & 0x20 ? "1 " : ". ");
-    Serial.print("\e[7;11H");
-    Serial.print(_bufferDescriptorTable[0][0].flags & 0x40 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][1].flags & 0x40 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][2].flags & 0x40 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][3].flags & 0x40 ? "1 " : ". ");
-    Serial.print("\e[8;11H");
-    Serial.print(_bufferDescriptorTable[0][0].flags & 0x80 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][1].flags & 0x80 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][2].flags & 0x80 ? "1 " : ". ");
-    Serial.print(_bufferDescriptorTable[0][3].flags & 0x80 ? "1 " : ". ");
-}
-
 /*-------------- USB FS ---------------*/
 
 USBFS *USBFS::_this;
 
 bool USBFS::enableUSB() {
-    initDebug();
         U1BDTP1 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 8);
         U1BDTP2 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 16);
         U1BDTP3 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 24);
@@ -208,67 +150,80 @@ bool USBFS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type) {
 		case 15: U1EP15bits.EPHSHK = 1; break;
 	}
 	
-    updateDebug();
 	return true;
 }
 
-bool USBFS::enqueuePacket(uint8_t ep, uint8_t *data, uint32_t len, uint8_t d01) {
+bool USBFS::canEnqueuePacket(uint8_t ep) {
+    uint8_t buffer = _endpointBuffers[ep].txAB;
+    uint8_t bdt_entry = buffer ? 3 : 2;
+    if ((_bufferDescriptorTable[ep][bdt_entry].flags & 0x80) == 0) return true;
+    return false;
+}
+
+bool USBFS::enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) {
 	bool sent = false;
-	if (_endpointBuffers[ep].txAB == 0) {
-Serial.print("QA");
-		while (!sent) {
-			if ((_bufferDescriptorTable[ep][2].flags & 0x80) == 0) {
-				if (len > 0) memcpy(_endpointBuffers[ep].tx[0], data, min(len, 64));
-				_bufferDescriptorTable[ep][2].flags = (len << 16) | 0x08 | _endpointBuffers[ep].data; 
-				sent = true;
-			}
-		}
-	} else {
-Serial.print("QB");
-		while (!sent) {
-			if ((_bufferDescriptorTable[ep][3].flags & 0x80) == 0) {
-				if (len > 0) memcpy(_endpointBuffers[ep].tx[1], data, min(len, 64));
-				_bufferDescriptorTable[ep][3].flags = (len << 16) | 0x08 | _endpointBuffers[ep].data;
-				sent = true;
-			}
-		}
+
+    uint8_t buffer = _endpointBuffers[ep].txAB;
+    uint8_t bdt_entry = buffer ? 3 : 2;
+
+    while (!sent) {
+        if ((_bufferDescriptorTable[ep][bdt_entry].flags & 0x80) == 0) {
+            if (len > 0) memcpy(_endpointBuffers[ep].tx[buffer], data, min(len, 64));
+            _bufferDescriptorTable[ep][bdt_entry].flags = (len << 16) | 0x08 | _endpointBuffers[ep].data; 
+            sent = true;
+            _bufferDescriptorTable[ep][bdt_entry].flags |= 0x80;
+        }
 	}
-Serial.println(_endpointBuffers[ep].data);
-dumpPacket(_endpointBuffers[ep].tx[_endpointBuffers[ep].txAB], len);
 
-    Serial.printf("EP0: 0x%08x Flags A: 0x%08x B: 0x%08x\r\n", U1EP0,  _bufferDescriptorTable[ep][2].flags, _bufferDescriptorTable[ep][3].flags);
-
-_bufferDescriptorTable[ep][2 | _endpointBuffers[ep].txAB].flags |= 0x80;
-
-
-	_endpointBuffers[ep].txAB = 1 - _endpointBuffers[ep].txAB;
+    _endpointBuffers[ep].txAB = 1 - _endpointBuffers[ep].txAB;
 	_endpointBuffers[ep].data = _endpointBuffers[ep].data ? 0 : 0x40;
 
-                switch(ep) {
-                        case 0: U1EP0bits.EPSTALL=0; break;
-                        case 1: U1EP1bits.EPSTALL=0; break;
-                        case 2: U1EP2bits.EPSTALL=0; break;
-                        case 3: U1EP3bits.EPSTALL=0; break;
-                        case 4: U1EP4bits.EPSTALL=0; break;
-                        case 5: U1EP5bits.EPSTALL=0; break;
-                        case 6: U1EP6bits.EPSTALL=0; break;
-                        case 7: U1EP7bits.EPSTALL=0; break;
-                        case 8: U1EP8bits.EPSTALL=0; break;
-                        case 9: U1EP9bits.EPSTALL=0; break;
-                        case 10: U1EP10bits.EPSTALL=0; break;
-                        case 11: U1EP11bits.EPSTALL=0; break;
-                        case 12: U1EP12bits.EPSTALL=0; break;
-                        case 13: U1EP13bits.EPSTALL=0; break;
-                        case 14: U1EP14bits.EPSTALL=0; break;
-                        case 15: U1EP15bits.EPSTALL=0; break;
-                }
-
-    updateDebug();
+    switch(ep) {
+        case 0: U1EP0bits.EPSTALL=0; break;
+        case 1: U1EP1bits.EPSTALL=0; break;
+        case 2: U1EP2bits.EPSTALL=0; break;
+        case 3: U1EP3bits.EPSTALL=0; break;
+        case 4: U1EP4bits.EPSTALL=0; break;
+        case 5: U1EP5bits.EPSTALL=0; break;
+        case 6: U1EP6bits.EPSTALL=0; break;
+        case 7: U1EP7bits.EPSTALL=0; break;
+        case 8: U1EP8bits.EPSTALL=0; break;
+        case 9: U1EP9bits.EPSTALL=0; break;
+        case 10: U1EP10bits.EPSTALL=0; break;
+        case 11: U1EP11bits.EPSTALL=0; break;
+        case 12: U1EP12bits.EPSTALL=0; break;
+        case 13: U1EP13bits.EPSTALL=0; break;
+        case 14: U1EP14bits.EPSTALL=0; break;
+        case 15: U1EP15bits.EPSTALL=0; break;
+    }
 
 	return true;
+}
+
+bool USBFS::sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
+    _endpointBuffers[ep].length = len;
+    _endpointBuffers[ep].buffer = data;
+
+    while (!canEnqueuePacket(ep));
+
+    uint32_t toSend = min(64, _endpointBuffers[ep].length);
+    enqueuePacket(ep, _endpointBuffers[ep].buffer, toSend);
+    _endpointBuffers[ep].length -= toSend;
+    _endpointBuffers[ep].buffer += toSend;
+
+//    if (_endpointBuffers[ep].length > 0) {
+//        if (canEnqueuePacket(ep)) {
+//            toSend = min(64, _endpointBuffers[ep].length);
+//            enqueuePacket(ep, _endpointBuffers[ep].buffer, toSend);
+//            _endpointBuffers[ep].length -= toSend;
+//            _endpointBuffers[ep].buffer += toSend;
+//        }
+//    }
+    return true;
 }
 
 void USBFS::handleInterrupt() {
+    uint32_t toSend;
 
 	if (U1IRbits.TRNIF) {
 
@@ -276,26 +231,27 @@ void USBFS::handleInterrupt() {
 		uint8_t bdt_slot = U1STATbits.PPBI | (U1STATbits.DIR << 1);
 
 		uint8_t pid = (_bufferDescriptorTable[ep][bdt_slot].flags >> 2) & 0x0F;
-        Serial.print("P"); Serial.println(pid, HEX);
 
 		switch (pid) {
 			case 0x01: // OUT
-                Serial.println("O");
-//				_endpointBuffers[ep].data = 0x00;
 				if (_onOutPacket) {
 					_onOutPacket(ep, _endpointBuffers[ep].rx[U1STATbits.PPBI], _bufferDescriptorTable[ep][bdt_slot].flags >> 16);
 				}
 				_bufferDescriptorTable[ep][bdt_slot].flags = (64 << 16) | 0x88;
 				break;
 			case 0x09: // IN
-                Serial.println("I");
-    Serial.printf("EP0: 0x%08x Flags A: 0x%08x B: 0x%08x\r\n", U1EP0,  _bufferDescriptorTable[ep][2].flags, _bufferDescriptorTable[ep][3].flags);
+                if (_endpointBuffers[ep].length > 0) {
+                    toSend = min(64, _endpointBuffers[ep].length);
+                    enqueuePacket(ep, _endpointBuffers[ep].buffer, toSend);
+                    _endpointBuffers[ep].length -= toSend;
+                    _endpointBuffers[ep].buffer += toSend;
+                }
+
 				if (_onInPacket) {
 					_onInPacket(ep, _endpointBuffers[ep].tx[U1STATbits.PPBI], _bufferDescriptorTable[ep][bdt_slot].flags >> 16);
 				}
 				break;
 			case 0x0d: // SETUP
-                Serial.println("S");
 				_endpointBuffers[ep].data = 0x40;
 				if (_onSetupPacket) {
 					_onSetupPacket(ep, _endpointBuffers[ep].rx[U1STATbits.PPBI], _bufferDescriptorTable[ep][bdt_slot].flags >> 16);
@@ -328,7 +284,6 @@ void USBFS::handleInterrupt() {
 		U1CONbits.TOKBUSY=0;
 	}
 	if (U1IRbits.URSTIF) {
-        Serial.println("R");
 		U1IEbits.IDLEIE = 1;
 		U1IEbits.TRNIE = 1;
 		U1ADDR = 0;
@@ -350,7 +305,6 @@ void USBFS::handleInterrupt() {
 	if (U1EIR) {
     
 	}
-    updateDebug();
 	U1EIR = 0xFF;
 	U1IR = 0xFF;
 	clearIntFlag(_USB_IRQ);
@@ -359,29 +313,5 @@ void USBFS::handleInterrupt() {
 bool USBFS::setAddress(uint8_t address) {
 	U1ADDR = address;
 	return true;
-}
-
-void USBFS::log(const char * txt) {
-    Serial.println(txt); return;
-    for (int i = 0; i < 9; i++) {
-        for (int j = 0; j < 80; j++) {
-            debugLog[i][j] = debugLog[i+1][j];
-        }
-    }
-    uint32_t l = strlen(txt);
-    for (int j = 0; j < 80; j++) {
-        if (j < l) {
-            debugLog[9][j] = txt[j];
-        } else {
-            debugLog[9][j] = ' ';
-        }
-    }
-
-    Serial.print("\e[12;1H");
-    for (int i = 0; i < 10; i++) {
-        for (int j = 0; j < 80; j++) {
-            Serial.write(debugLog[i][j]);
-        }
-    }
 }
 
