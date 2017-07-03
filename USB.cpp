@@ -1,10 +1,5 @@
 #include <USB.h>
 
-
-#define KVA_TO_PA(v)  ((v) & 0x1fffffff)
-#define PA_TO_KVA0(pa)  ((pa) | 0x80000000)  // cachable
-#define PA_TO_KVA1(pa)  ((pa) | 0xa000000
-
 void dumpPacket(const uint8_t *data, uint32_t l) {
     for (int i = 0; i < l; i++) {
         Serial.print(data[i], HEX);
@@ -13,305 +8,234 @@ void dumpPacket(const uint8_t *data, uint32_t l) {
     Serial.println();
 }
 
-/*-------------- USB FS ---------------*/
-
-USBFS *USBFS::_this;
-
-bool USBFS::enableUSB() {
-        U1BDTP1 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 8);
-        U1BDTP2 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 16);
-        U1BDTP3 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 24);
-
-
-        // enable usb device mode
-        U1CONbits.SOFEN = 1;
-	U1OTGCONbits.DPPULUP = 1;
-	U1OTGCONbits.OTGEN = 1;
-	U1IR = 0xFF;
-	U1IEbits.URSTIE = 1;
-	U1EIE = 0xFF;
-
-	setIntVector(_USB_1_VECTOR, _usbInterrupt);
-	setIntPriority(_USB_1_VECTOR, 5, 0);
-	clearIntFlag(_USB_IRQ);
-	setIntEnable(_USB_IRQ);
-
-	U1SOFbits.CNT = 74;
-
-	U1PWRCbits.USBPWR = 1;
-
-    addEndpoint(0, EP_IN, EP_CTL);
-    addEndpoint(0, EP_OUT, EP_CTL);
-	return true;
+USBManager::USBManager(USBDriver *driver, uint16_t vid, uint16_t pid) {
+    _driver = driver;
+    _driver->setManager(this);
+    _devices = NULL;
+    _vid = vid;
+    _pid = pid;
+    _ifCount = 0;
+    _epCount = 1;
 }
 
-bool USBFS::disableUSB() {
-	U1PWRCbits.USBPWR = 0;
-	return true;
-}
-	
-
-bool USBFS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type) {
-	if (id > 15) return false;
-    _endpointBuffers[id].data = 0x40;
-	if (direction == EP_IN) {
-		if (_endpointBuffers[id].rx[0] == NULL) {
-			_endpointBuffers[id].rx[0] = (uint8_t *)malloc(80);
-		}
-		if (_endpointBuffers[id].rx[0] == NULL) {
-			return false;
-		}
-		if (_endpointBuffers[id].rx[1] == NULL) {
-			_endpointBuffers[id].rx[1] = (uint8_t *)malloc(80);
-		}
-		if (_endpointBuffers[id].rx[1] == NULL) {
-			free(_endpointBuffers[id].rx[0]);
-			return false;
-		}
-		_bufferDescriptorTable[id][0].buffer = (uint8_t *)KVA_TO_PA((uint32_t)_endpointBuffers[id].rx[0]);
-		_bufferDescriptorTable[id][0].flags = (64 << 16) | 0x88;
-		_bufferDescriptorTable[id][1].buffer = (uint8_t *)KVA_TO_PA((uint32_t)_endpointBuffers[id].rx[1]);
-		_bufferDescriptorTable[id][1].flags = (64 << 16) | 0x88;
-		switch (id) {
-			case 0: U1EP0bits.EPRXEN = 1; break;
-			case 1: U1EP1bits.EPRXEN = 1; break;
-			case 2: U1EP2bits.EPRXEN = 1; break;
-			case 3: U1EP3bits.EPRXEN = 1; break;
-			case 4: U1EP4bits.EPRXEN = 1; break;
-			case 5: U1EP5bits.EPRXEN = 1; break;
-			case 6: U1EP6bits.EPRXEN = 1; break;
-			case 7: U1EP7bits.EPRXEN = 1; break;
-			case 8: U1EP8bits.EPRXEN = 1; break;
-			case 9: U1EP9bits.EPRXEN = 1; break;
-			case 10: U1EP10bits.EPRXEN = 1; break;
-			case 11: U1EP11bits.EPRXEN = 1; break;
-			case 12: U1EP12bits.EPRXEN = 1; break;
-			case 13: U1EP13bits.EPRXEN = 1; break;
-			case 14: U1EP14bits.EPRXEN = 1; break;
-			case 15: U1EP15bits.EPRXEN = 1; break;
-		}
-	} else {
-		if (_endpointBuffers[id].tx[0] == NULL) {
-			_endpointBuffers[id].tx[0] = (uint8_t *)malloc(80);
-		}
-		if (_endpointBuffers[id].tx[0] == NULL) {
-			return false;
-		}
-		if (_endpointBuffers[id].tx[1] == NULL) {
-			_endpointBuffers[id].tx[1] = (uint8_t *)malloc(80);
-		}
-		if (_endpointBuffers[id].tx[1] == NULL) {
-			free(_endpointBuffers[id].tx[0]);
-			return false;
-		}
-//		_endpointBuffers[id].txAB = 0;
-		_bufferDescriptorTable[id][2].buffer = (uint8_t *)KVA_TO_PA((uint32_t)_endpointBuffers[id].tx[0]);
-		_bufferDescriptorTable[id][2].flags = 0;
-		_bufferDescriptorTable[id][3].buffer = (uint8_t *)KVA_TO_PA((uint32_t)_endpointBuffers[id].tx[1]);
-		_bufferDescriptorTable[id][3].flags = 0;
-		switch (id) {
-			case 0: U1EP0bits.EPTXEN = 1; break;
-			case 1: U1EP1bits.EPTXEN = 1; break;
-			case 2: U1EP2bits.EPTXEN = 1; break;
-			case 3: U1EP3bits.EPTXEN = 1; break;
-			case 4: U1EP4bits.EPTXEN = 1; break;
-			case 5: U1EP5bits.EPTXEN = 1; break;
-			case 6: U1EP6bits.EPTXEN = 1; break;
-			case 7: U1EP7bits.EPTXEN = 1; break;
-			case 8: U1EP8bits.EPTXEN = 1; break;
-			case 9: U1EP9bits.EPTXEN = 1; break;
-			case 10: U1EP10bits.EPTXEN = 1; break;
-			case 11: U1EP11bits.EPTXEN = 1; break;
-			case 12: U1EP12bits.EPTXEN = 1; break;
-			case 13: U1EP13bits.EPTXEN = 1; break;
-			case 14: U1EP14bits.EPTXEN = 1; break;
-			case 15: U1EP15bits.EPTXEN = 1; break;
-		}
-		_enabledEndpoints |= (1 << (id + 16));
-	}
-
-	
-	switch (id) {
-		case 0: U1EP0bits.EPHSHK = 1; break;
-		case 1: U1EP1bits.EPHSHK = 1; break;
-		case 2: U1EP2bits.EPHSHK = 1; break;
-		case 3: U1EP3bits.EPHSHK = 1; break;
-		case 4: U1EP4bits.EPHSHK = 1; break;
-		case 5: U1EP5bits.EPHSHK = 1; break;
-		case 6: U1EP6bits.EPHSHK = 1; break;
-		case 7: U1EP7bits.EPHSHK = 1; break;
-		case 8: U1EP8bits.EPHSHK = 1; break;
-		case 9: U1EP9bits.EPHSHK = 1; break;
-		case 10: U1EP10bits.EPHSHK = 1; break;
-		case 11: U1EP11bits.EPHSHK = 1; break;
-		case 12: U1EP12bits.EPHSHK = 1; break;
-		case 13: U1EP13bits.EPHSHK = 1; break;
-		case 14: U1EP14bits.EPHSHK = 1; break;
-		case 15: U1EP15bits.EPHSHK = 1; break;
-	}
-	
-	return true;
+USBManager::USBManager(USBDriver &driver, uint16_t vid, uint16_t pid) {
+    _driver = &driver;
+    _driver->setManager(this);
+    _devices = NULL;
+    _vid = vid;
+    _pid = pid;
+    _ifCount = 0;
+    _epCount = 1;
 }
 
-bool USBFS::canEnqueuePacket(uint8_t ep) {
-    uint8_t buffer = _endpointBuffers[ep].txAB;
-    uint8_t bdt_entry = buffer ? 3 : 2;
-    if ((_bufferDescriptorTable[ep][bdt_entry].flags & 0x80) == 0) return true;
-    return false;
+uint8_t USBManager::allocateInterface() {
+    uint8_t i = _ifCount;
+    _ifCount++;
+    return i;
 }
 
-bool USBFS::enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) {
-	bool sent = false;
+uint8_t USBManager::allocateEndpoint() {
+    uint8_t i = _epCount;
+    _epCount++;
+    return i;
+}
 
-    uint8_t buffer = _endpointBuffers[ep].txAB;
-    uint8_t bdt_entry = buffer ? 3 : 2;
-
-    while (!sent) {
-        if ((_bufferDescriptorTable[ep][bdt_entry].flags & 0x80) == 0) {
-            if (len > 0) memcpy(_endpointBuffers[ep].tx[buffer], data, min(len, 64));
-            _bufferDescriptorTable[ep][bdt_entry].flags = (len << 16) | 0x08 | _endpointBuffers[ep].data; 
-            sent = true;
-            _bufferDescriptorTable[ep][bdt_entry].flags |= 0x80;
-        }
-	}
-
-    _endpointBuffers[ep].txAB = 1 - _endpointBuffers[ep].txAB;
-	_endpointBuffers[ep].data = _endpointBuffers[ep].data ? 0 : 0x40;
-
-    switch(ep) {
-        case 0: U1EP0bits.EPSTALL=0; break;
-        case 1: U1EP1bits.EPSTALL=0; break;
-        case 2: U1EP2bits.EPSTALL=0; break;
-        case 3: U1EP3bits.EPSTALL=0; break;
-        case 4: U1EP4bits.EPSTALL=0; break;
-        case 5: U1EP5bits.EPSTALL=0; break;
-        case 6: U1EP6bits.EPSTALL=0; break;
-        case 7: U1EP7bits.EPSTALL=0; break;
-        case 8: U1EP8bits.EPSTALL=0; break;
-        case 9: U1EP9bits.EPSTALL=0; break;
-        case 10: U1EP10bits.EPSTALL=0; break;
-        case 11: U1EP11bits.EPSTALL=0; break;
-        case 12: U1EP12bits.EPSTALL=0; break;
-        case 13: U1EP13bits.EPSTALL=0; break;
-        case 14: U1EP14bits.EPSTALL=0; break;
-        case 15: U1EP15bits.EPSTALL=0; break;
+void USBManager::begin() {
+    _wantedAddress = 0;
+    for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
+        scan->device->configureEndpoints();
     }
-
-	return true;
+    _driver->enableUSB();
 }
 
-bool USBFS::sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
-    _endpointBuffers[ep].length = len;
-    _endpointBuffers[ep].buffer = data;
+void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
+    uint16_t signature = (data[0] << 8) | data[1];
+    uint8_t outLength = data[6];
 
-    while (!canEnqueuePacket(ep));
+    _target = data[3];
 
-    uint32_t toSend = min(64, _endpointBuffers[ep].length);
-    enqueuePacket(ep, _endpointBuffers[ep].buffer, toSend);
-    _endpointBuffers[ep].length -= toSend;
-    _endpointBuffers[ep].buffer += toSend;
+    switch (signature) {
+        case 0x8006: // Get Descriptor
+            switch (_target) {
+                case 1: { // Device Descriptor
+                        struct DeviceDescriptor o;
+                        o.bLength = sizeof(struct DeviceDescriptor);
+                        o.bDescriptorType = 0x01;
+                        o.bcdUSB = 0x0101;
+                        o.bDeviceClass = 0x02;
+                        o.bDeviceSubClass = 0x00;
+                        o.bDeviceProtocol = 0x00;
+                        o.bMaxPacketSize = 0x40;
+                        o.idVendor = _vid;
+                        o.idProduct = _pid;
+                        o.bcdDevice = 0x0180;
+                        o.iManufacturer = 0x01;
+                        o.iProduct = 0x02;
+                        o.iSerialNumber = 0x03;
+                        o.bNumConfigurations = 0x01;
+                        _driver->sendBuffer(0, (const uint8_t *)&o, min(outLength, sizeof(struct DeviceDescriptor)));
+                    }
+                    break;
 
-//    if (_endpointBuffers[ep].length > 0) {
-//        if (canEnqueuePacket(ep)) {
-//            toSend = min(64, _endpointBuffers[ep].length);
-//            enqueuePacket(ep, _endpointBuffers[ep].buffer, toSend);
-//            _endpointBuffers[ep].length -= toSend;
-//            _endpointBuffers[ep].buffer += toSend;
-//        }
-//    }
-    return true;
-}
+                case 2: { // Configuration Descriptor
+                        struct ConfigurationDescriptor o;
+                        uint32_t len = sizeof(struct ConfigurationDescriptor);
+                        uint8_t faces = 0;
 
-void USBFS::handleInterrupt() {
-    uint32_t toSend;
 
-	if (U1IRbits.TRNIF) {
 
-		uint8_t ep = U1STATbits.ENDPT;
-		uint8_t bdt_slot = U1STATbits.PPBI | (U1STATbits.DIR << 1);
+                        for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
+                            len += scan->device->getDescriptorLength();
+                            faces += scan->device->getInterfaceCount();
+                        }
 
-		uint8_t pid = (_bufferDescriptorTable[ep][bdt_slot].flags >> 2) & 0x0F;
+                        uint8_t *buf = (uint8_t *)malloc(len);
+                        uint8_t *ptr = buf;
+                        struct ConfigurationDescriptor *desc = (struct ConfigurationDescriptor *)buf;
 
-		switch (pid) {
-			case 0x01: // OUT
-				if (_onOutPacket) {
-					_onOutPacket(ep, _endpointBuffers[ep].rx[U1STATbits.PPBI], _bufferDescriptorTable[ep][bdt_slot].flags >> 16);
-				}
-				_bufferDescriptorTable[ep][bdt_slot].flags = (64 << 16) | 0x88;
-				break;
-			case 0x09: // IN
-                if (_endpointBuffers[ep].length > 0) {
-                    toSend = min(64, _endpointBuffers[ep].length);
-                    enqueuePacket(ep, _endpointBuffers[ep].buffer, toSend);
-                    _endpointBuffers[ep].length -= toSend;
-                    _endpointBuffers[ep].buffer += toSend;
+                        desc->bLength = sizeof(struct ConfigurationDescriptor);
+                        desc->bDescriptorType = 0x02;
+                        desc->wTotalLength = len;
+                        desc->bNumInterfaces = faces;
+                        desc->bConfigurationValue = 1;
+                        desc->iConfiguration = 1;
+                        desc->bmAttributes = 0x80;
+                        desc->bMaxPower = 250;
+
+                        ptr += sizeof(struct ConfigurationDescriptor);
+
+                        for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
+                            ptr += scan->device->populateConfigurationDescriptor(ptr);
+                        }
+                        _driver->sendBuffer(0, buf, min(outLength, len));
+                        free(buf);
+                    }
+                    break;
+
+                case 3: { // String Descriptor
+                        switch (data[2]) {
+                            case 0x00: { // Header
+                                    struct StringDescriptorHeader o;
+                                    o.bLength = sizeof(struct StringDescriptorHeader);
+                                    o.bDescriptorType = 0x03;
+                                    o.wLANGID = 0x0409;
+                                    _driver->sendBuffer(0, (const uint8_t *)&o, min(outLength, sizeof(struct StringDescriptorHeader)));
+                                }
+                                break;
+
+                            case 0x01: { // Manufacturer
+                                    const char *man = "chipKIT";
+                                    uint8_t mlen = strlen(man);
+                                    uint8_t o[mlen * 2 + 2];
+                                    o[0] = mlen * 2 + 2;
+                                    o[1] = 0x03;
+                                    for (int i = 0; i < mlen; i++) {
+                                        o[2 + (i * 2)] = man[i];
+                                        o[3 + (i * 2)] = 0;
+                                    }
+                                    _driver->sendBuffer(0, (const uint8_t *)&o, min(outLength, mlen * 2 + 2));
+                                }
+                                break;
+
+                            case 0x02: { // Product
+                                    const char *prod = "MAX32";
+                                    uint8_t mlen = strlen(prod);
+                                    uint8_t o[mlen * 2 + 2];
+                                    o[0] = mlen * 2 + 2;
+                                    o[1] = 0x03;
+                                    for (int i = 0; i < mlen; i++) {
+                                        o[2 + (i * 2)] = prod[i];
+                                        o[3 + (i * 2)] = 0;
+                                    }
+                                    _driver->sendBuffer(0, (const uint8_t *)&o, min(outLength, mlen * 2 + 2));
+                                }
+                                break;
+
+                            case 0x03: { // Serial
+                                    const char *ser = "1234567890";
+                                    uint8_t mlen = strlen(ser);
+                                    uint8_t o[mlen * 2 + 2];
+                                    o[0] = mlen * 2 + 2;
+                                    o[1] = 0x03;
+                                    for (int i = 0; i < mlen; i++) {
+                                        o[2 + (i * 2)] = ser[i];
+                                        o[3 + (i * 2)] = 0;
+                                    }
+                                    _driver->sendBuffer(0, (const uint8_t *)&o, min(outLength, mlen * 2 + 2));
+                                }
+                                break;
+
+                            default:
+                                _driver->sendBuffer(0, NULL, 0);
+                                break;
+                        }
+
+                        break;
+                    }
+                    break;
+
+                default:
+                    for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
+                        if (scan->device->getDescriptor(ep, _target, outLength)) {
+                            return;
+                        }
+                    }
+                    _driver->sendBuffer(0, NULL, 0);
+                    break;
+            }
+
+            break;
+
+        case 0x0005: // Set Address
+            _driver->sendBuffer(0, NULL, 0);
+            _wantedAddress = data[2];
+            break;
+
+        default:
+            for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
+                if (scan->device->onSetupPacket(ep, _target, data, l)) {
+                    return;
                 }
+            }
+            _driver->sendBuffer(0, NULL, 0);
+            break;
+    }
+}
 
-				if (_onInPacket) {
-					_onInPacket(ep, _endpointBuffers[ep].tx[U1STATbits.PPBI], _bufferDescriptorTable[ep][bdt_slot].flags >> 16);
-				}
-				break;
-			case 0x0d: // SETUP
-				_endpointBuffers[ep].data = 0x40;
-				if (_onSetupPacket) {
-					_onSetupPacket(ep, _endpointBuffers[ep].rx[U1STATbits.PPBI], _bufferDescriptorTable[ep][bdt_slot].flags >> 16);
-				}
-				_bufferDescriptorTable[ep][bdt_slot].flags = (64 << 16) | 0x88;
-				break;
-			default:
-				break;
-		}
+void USBManager::onInPacket(uint8_t ep, uint8_t *data, uint32_t l) {
+    if (_wantedAddress != 0) {
+        _driver->setAddress(_wantedAddress);
+        _wantedAddress = 0;
+    }
+    for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
+        if (scan->device->onInPacket(ep, _target, data, l)) {
+            return;
+        }
+    }
+}
 
+void USBManager::onOutPacket(uint8_t ep, uint8_t *data, uint32_t l) {
+    for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
+        if (scan->device->onOutPacket(ep, _target, data, l)) {
+            return;
+        }
+    }
+}
 
-		switch(ep) {
-			case 0: U1EP0bits.EPSTALL=0; break;
-			case 1: U1EP1bits.EPSTALL=0; break;
-			case 2: U1EP2bits.EPSTALL=0; break;
-			case 3: U1EP3bits.EPSTALL=0; break;
-			case 4: U1EP4bits.EPSTALL=0; break;
-			case 5: U1EP5bits.EPSTALL=0; break;
-			case 6: U1EP6bits.EPSTALL=0; break;
-			case 7: U1EP7bits.EPSTALL=0; break;
-			case 8: U1EP8bits.EPSTALL=0; break;
-			case 9: U1EP9bits.EPSTALL=0; break;
-			case 10: U1EP10bits.EPSTALL=0; break;
-			case 11: U1EP11bits.EPSTALL=0; break;
-			case 12: U1EP12bits.EPSTALL=0; break;
-			case 13: U1EP13bits.EPSTALL=0; break;
-			case 14: U1EP14bits.EPSTALL=0; break;
-			case 15: U1EP15bits.EPSTALL=0; break;
-		}
-		U1CONbits.TOKBUSY=0;
-	}
-	if (U1IRbits.URSTIF) {
-		U1IEbits.IDLEIE = 1;
-		U1IEbits.TRNIE = 1;
-		U1ADDR = 0;
-		U1CONbits.PPBRST = 1;
-		U1CONbits.PPBRST = 0;
-		for (int i  = 0; i < 16; i++) {
-			_endpointBuffers[i].txAB = 0;
-            _endpointBuffers[i].data = 0x40;
-		}
-	}
-	if (U1IRbits.IDLEIF) {
-		U1IEbits.IDLEIE = 0;
-		U1IEbits.RESUMEIE = 1;
-	}
-	if (U1IRbits.RESUMEIF) {
-		U1IEbits.IDLEIE = 1;
-		U1IEbits.RESUMEIE = 0;
-	}
-	if (U1EIR) {
+void USBManager::addDevice(USBDevice *d) {
+    struct USBDeviceList *newDevice = (struct USBDeviceList *)malloc(sizeof(struct USBDeviceList));
+    struct USBDeviceList *scan;
+    d->initDevice(this);
+    newDevice->device = d;
+    newDevice->next = NULL;
+    if (_devices == NULL) {
+        _devices = newDevice;
+        return;
+    }
     
-	}
-	U1EIR = 0xFF;
-	U1IR = 0xFF;
-	clearIntFlag(_USB_IRQ);
+    scan = _devices;
+    while (scan->next != NULL) {
+        scan = scan->next;
+    }
+    scan->next = newDevice;
 }
-
-bool USBFS::setAddress(uint8_t address) {
-	U1ADDR = address;
-	return true;
-}
-
