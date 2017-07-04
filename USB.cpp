@@ -8,6 +8,32 @@ void dumpPacket(const uint8_t *data, uint32_t l) {
     Serial.println();
 }
 
+USBManager::USBManager(USBDriver *driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser) {
+    _driver = driver;
+    _driver->setManager(this);
+    _devices = NULL;
+    _vid = vid;
+    _pid = pid;
+    _ifCount = 0;
+    _epCount = 1;
+    _manufacturer = mfg;
+    _product = prod;
+    _serial = ser;
+}
+
+USBManager::USBManager(USBDriver &driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser) {
+    _driver = &driver;
+    _driver->setManager(this);
+    _devices = NULL;
+    _vid = vid;
+    _pid = pid;
+    _ifCount = 0;
+    _epCount = 1;
+    _manufacturer = mfg;
+    _product = prod;
+    _serial = ser;
+}
+
 USBManager::USBManager(USBDriver *driver, uint16_t vid, uint16_t pid) {
     _driver = driver;
     _driver->setManager(this);
@@ -16,6 +42,9 @@ USBManager::USBManager(USBDriver *driver, uint16_t vid, uint16_t pid) {
     _pid = pid;
     _ifCount = 0;
     _epCount = 1;
+    _manufacturer = "chipKIT";
+    _product = _BOARD_NAME_;
+    _serial = "";
 }
 
 USBManager::USBManager(USBDriver &driver, uint16_t vid, uint16_t pid) {
@@ -26,6 +55,9 @@ USBManager::USBManager(USBDriver &driver, uint16_t vid, uint16_t pid) {
     _pid = pid;
     _ifCount = 0;
     _epCount = 1;
+    _manufacturer = "chipKIT";
+    _product = _BOARD_NAME_;
+    _serial = "";
 }
 
 uint8_t USBManager::allocateInterface() {
@@ -124,13 +156,12 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
                                 break;
 
                             case 0x01: { // Manufacturer
-                                    const char *man = "chipKIT";
-                                    uint8_t mlen = strlen(man);
+                                    uint8_t mlen = strlen(_manufacturer);
                                     uint8_t o[mlen * 2 + 2];
                                     o[0] = mlen * 2 + 2;
                                     o[1] = 0x03;
                                     for (int i = 0; i < mlen; i++) {
-                                        o[2 + (i * 2)] = man[i];
+                                        o[2 + (i * 2)] = _manufacturer[i];
                                         o[3 + (i * 2)] = 0;
                                     }
                                     _driver->sendBuffer(0, (const uint8_t *)&o, min(outLength, mlen * 2 + 2));
@@ -138,13 +169,12 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
                                 break;
 
                             case 0x02: { // Product
-                                    const char *prod = "WF32";
-                                    uint8_t mlen = strlen(prod);
+                                    uint8_t mlen = strlen(_product);
                                     uint8_t o[mlen * 2 + 2];
                                     o[0] = mlen * 2 + 2;
                                     o[1] = 0x03;
                                     for (int i = 0; i < mlen; i++) {
-                                        o[2 + (i * 2)] = prod[i];
+                                        o[2 + (i * 2)] = _product[i];
                                         o[3 + (i * 2)] = 0;
                                     }
                                     _driver->sendBuffer(0, (const uint8_t *)&o, min(outLength, mlen * 2 + 2));
@@ -152,13 +182,12 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
                                 break;
 
                             case 0x03: { // Serial
-                                    const char *ser = "1234567890";
-                                    uint8_t mlen = strlen(ser);
+                                    uint8_t mlen = strlen(_serial);
                                     uint8_t o[mlen * 2 + 2];
                                     o[0] = mlen * 2 + 2;
                                     o[1] = 0x03;
                                     for (int i = 0; i < mlen; i++) {
-                                        o[2 + (i * 2)] = ser[i];
+                                        o[2 + (i * 2)] = _serial[i];
                                         o[3 + (i * 2)] = 0;
                                     }
                                     _driver->sendBuffer(0, (const uint8_t *)&o, min(outLength, mlen * 2 + 2));

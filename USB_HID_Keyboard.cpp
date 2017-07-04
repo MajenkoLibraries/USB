@@ -13,7 +13,6 @@ static const uint8_t keyboardHidReport[] = {
     0x05, 0x01, // USAGE_PAGE (Generic Desktop) // 47
     0x09, 0x06, // USAGE (Keyboard)
     0xa1, 0x01, // COLLECTION (Application)
-    0x85, 0x01, //   REPORT_ID (2)
     0x05, 0x07, //   USAGE_PAGE (Keyboard)
 
     0x19, 0xe0, //   USAGE_MINIMUM (Keyboard LeftControl)
@@ -249,9 +248,18 @@ void HID_Keyboard::configureEndpoints() {
 
 
 bool HID_Keyboard::onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
-    if (target == _ifInt) {
+    if (data[4] != _ifInt) return false;
+
+    uint16_t signature = (data[0] << 8) | data[1];
+    switch (signature) {
+        case 0xA101: {
+                _manager->sendBuffer(0, (uint8_t *)&_keyReport, sizeof(_keyReport));
+                return true;
+            }
+            break;
     }
     return false;
+
 }
 
 bool HID_Keyboard::onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
@@ -283,11 +291,10 @@ size_t HID_Keyboard::write(uint8_t b) {
 }
 
 void HID_Keyboard::sendReport(struct KeyReport *keys) {
-    uint8_t b[sizeof(struct KeyReport)+1];
-
-    b[0] = 1;
-    memcpy(&b[1], keys, sizeof(struct KeyReport));
-    while(!_manager->sendBuffer(_epInt, b, sizeof(b)));
+    uint32_t ts = millis();
+    while(!_manager->sendBuffer(_epInt, (uint8_t *)keys, sizeof(struct KeyReport))) {
+        if (millis() - ts > 5) return;
+    }
 }
 
 size_t HID_Keyboard::press(uint8_t k) {

@@ -14,7 +14,6 @@ static const uint8_t mouseHidReport[] = {
     0x05, 0x01, // USAGE_PAGE (Generic Desktop) // 54
     0x09, 0x02, // USAGE (Mouse)
     0xa1, 0x01, // COLLECTION (Application)
-    0x85, 0x01, //   REPORT_ID (1)
     0x09, 0x01, //   USAGE (Pointer)
     0xa1, 0x00, //   COLLECTION (Physical)
     0x05, 0x09, //     USAGE_PAGE (Button)
@@ -114,7 +113,21 @@ void HID_Mouse::configureEndpoints() {
 
 
 bool HID_Mouse::onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
-    if (target == _ifInt) {
+
+    if (data[4] != _ifInt) return false;
+
+    uint16_t signature = (data[0] << 8) | data[1];
+    switch (signature) {
+        case 0xA101: {
+                uint8_t m[4];
+                m[0] = 0;
+                m[1] = 0;
+                m[2] = 0;
+                m[3] = 0; 
+                _manager->sendBuffer(0, m, 4);
+                return true;
+            }
+            break;
     }
     return false;
 }
@@ -137,11 +150,10 @@ bool HID_Mouse::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t 
 }
 
 void HID_Mouse::sendReport(const uint8_t *b, uint8_t l) {
-    uint8_t buf[l+1];
-
-    buf[0] = 1;
-    memcpy(&buf[1], b, l);
-    while(!_manager->sendBuffer(_epInt, buf, l+1));
+    uint32_t ts = millis();
+    while (!_manager->sendBuffer(_epInt, b, l)) {
+        if (millis() - ts > 10) return;
+    }
 }
 
 void HID_Mouse::click(uint8_t b) {

@@ -149,11 +149,17 @@ class USBManager {
         uint8_t _epCount;
         uint8_t _target;
 
+        const char *_manufacturer;
+        const char *_product;
+        const char *_serial;
+
 	public:
         void onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l);
         void onInPacket(uint8_t ep, uint8_t *data, uint32_t l);
         void onOutPacket(uint8_t ep, uint8_t *data, uint32_t l);
 
+		USBManager(USBDriver *driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser);
+		USBManager(USBDriver &driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser);
 		USBManager(USBDriver *driver, uint16_t vid, uint16_t pid);
 		USBManager(USBDriver &driver, uint16_t vid, uint16_t pid);
 
@@ -307,5 +313,58 @@ class HID_Mouse : public USBDevice {
         void release(uint8_t b = MOUSE_LEFT);   // release LEFT by default
         bool isPressed(uint8_t b = MOUSE_LEFT); // check LEFT by default
 };
+
+struct JoystickReport {
+    struct {
+        uint8_t x;
+        uint8_t y;
+        uint8_t z;
+    } position __attribute__((packed));
+    struct {
+        uint8_t x;
+        uint8_t y;
+        uint8_t z;
+    } rotation __attribute__((packed));
+    uint8_t hat;
+    uint16_t buttons;
+} __attribute__((packed));
+
+class HID_Joystick : public USBDevice {
+    private:
+        USBManager *_manager;
+        uint8_t _ifInt;
+        uint8_t _epInt;
+        void sendReport(const uint8_t *b, uint8_t l);
+        struct JoystickReport _rep;
+
+    public:
+        uint8_t getDescriptorLength();
+        uint8_t getInterfaceCount();
+        uint32_t populateConfigurationDescriptor(uint8_t *buf);
+        void initDevice(USBManager *manager);
+        bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        void configureEndpoints();
+
+        bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+
+        HID_Joystick(void);
+        void begin();
+        void end();
+        void setX(uint8_t x);
+        void setY(uint8_t y);
+        void setZ(uint8_t z);
+        void rotateX(uint8_t x);
+        void rotateY(uint8_t y);
+        void rotateZ(uint8_t z);
+        void setPosition(uint8_t x, uint8_t y, uint8_t z);
+        void setRotation(uint8_t x, uint8_t y, uint8_t z);
+        void press(uint8_t b);
+        void release(uint8_t b);
+        void setHat(uint8_t d);
+};
+
 
 #endif
