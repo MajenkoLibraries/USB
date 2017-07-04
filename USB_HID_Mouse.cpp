@@ -2,7 +2,7 @@
 
 
 uint8_t HID_Mouse::getDescriptorLength() {
-    return 32;
+    return 32 - 7;
 }
 
 uint8_t HID_Mouse::getInterfaceCount() {
@@ -47,7 +47,7 @@ uint32_t HID_Mouse::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] =                      0x04;
     buf[i++] =                      _ifInt;
     buf[i++] =                      0;
-    buf[i++] =                      2;
+    buf[i++] =                      1;
     buf[i++] =                      0x03;
     buf[i++] =                      0x00;
     buf[i++] =                      2;
@@ -77,13 +77,13 @@ uint32_t HID_Mouse::populateConfigurationDescriptor(uint8_t *buf) {
 
     /* Endpoint Descriptor */
 
-    buf[i++] =                      0x07;
-    buf[i++] =                      0x05;
-    buf[i++] =                      _epInt;
-    buf[i++] =                      0x03;
-    buf[i++] =                      0x40; // Size = 64
-    buf[i++] =                      0x00;
-    buf[i++] =                      1;
+//    buf[i++] =                      0x07;
+//    buf[i++] =                      0x05;
+//    buf[i++] =                      _epInt;
+//    buf[i++] =                      0x03;
+//    buf[i++] =                      0x40; // Size = 64
+//    buf[i++] =                      0x00;
+//    buf[i++] =                      1;
 
     return i;
 }
@@ -108,7 +108,7 @@ bool HID_Mouse::getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint
 }
 
 void HID_Mouse::configureEndpoints() {
-    _manager->addEndpoint(_epInt, EP_IN, EP_INT, 64);
+//    _manager->addEndpoint(_epInt, EP_IN, EP_INT, 64);
     _manager->addEndpoint(_epInt, EP_OUT, EP_INT, 64);
 }
 
