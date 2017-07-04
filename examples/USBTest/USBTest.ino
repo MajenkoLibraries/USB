@@ -5,12 +5,14 @@ USBFS usbDriver;
 USBManager USB(usbDriver, 0x0403, 0xA662);
 CDCACM uSerial;
 HID_Keyboard Keyboard;
+HID_Mouse Mouse;
 
 void setup() {
 	Serial.begin(1000000);
 	pinMode(PIN_LED1, OUTPUT);
     USB.addDevice(&uSerial);
     USB.addDevice(&Keyboard);
+    USB.addDevice(&Mouse);
     USB.begin();
     pinMode(PIN_BTN1, INPUT);
     pinMode(PIN_BTN2, INPUT);
@@ -29,7 +31,7 @@ void loop() {
     if (digitalRead(PIN_BTN2) != p2) {
         p2 = digitalRead(PIN_BTN2);
         if (p2 == HIGH) {
-            Keyboard.releaseAll();
+            Mouse.click(MOUSE_LEFT);
         }
     }
 

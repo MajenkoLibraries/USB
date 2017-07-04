@@ -268,6 +268,44 @@ class HID_Keyboard : public USBDevice, public Print {
         size_t release(uint8_t key);
         void releaseAll();
 };
+
+#define MOUSE_LEFT 1
+#define MOUSE_RIGHT 2
+#define MOUSE_MIDDLE 4
+#define MOUSE_ALL (MOUSE_LEFT | MOUSE_RIGHT | MOUSE_MIDDLE)
+
+
+class HID_Mouse : public USBDevice {
+    private:
+        USBManager *_manager;
+        uint8_t _ifInt;
+        uint8_t _epInt;
+        void sendReport(const uint8_t *b, uint8_t l);
+        uint8_t _buttons;
+        void buttons(uint8_t b);
+
+    public:
+        uint8_t getDescriptorLength();
+        uint8_t getInterfaceCount();
+        uint32_t populateConfigurationDescriptor(uint8_t *buf);
+        void initDevice(USBManager *manager);
+        bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        void configureEndpoints();
+
+        bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+
+        HID_Mouse() : _buttons(0) {}
     
+        void begin(void) {};
+        void end(void) {};
+        void click(uint8_t b = MOUSE_LEFT);
+        void move(signed char x, signed char y, signed char wheel = 0);
+        void press(uint8_t b = MOUSE_LEFT);     // press LEFT by default
+        void release(uint8_t b = MOUSE_LEFT);   // release LEFT by default
+        bool isPressed(uint8_t b = MOUSE_LEFT); // check LEFT by default
+};
 
 #endif

@@ -1,8 +1,5 @@
 #include <USB.h>
 
-#define CDC_ACT_SET_LINE_CODING 1
-
-
 uint8_t HID_Keyboard::getDescriptorLength() {
     return 32;
 }
@@ -16,7 +13,7 @@ static const uint8_t keyboardHidReport[] = {
     0x05, 0x01, // USAGE_PAGE (Generic Desktop) // 47
     0x09, 0x06, // USAGE (Keyboard)
     0xa1, 0x01, // COLLECTION (Application)
-    0x85, 0x02, //   REPORT_ID (2)
+    0x85, 0x01, //   REPORT_ID (2)
     0x05, 0x07, //   USAGE_PAGE (Keyboard)
 
     0x19, 0xe0, //   USAGE_MINIMUM (Keyboard LeftControl)
@@ -240,7 +237,9 @@ bool HID_Keyboard::getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t
 bool HID_Keyboard::getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) {
     if (target == _ifInt) {
         _manager->sendBuffer(0, keyboardHidReport, min(sizeof(keyboardHidReport), maxlen));
+        return true;
     }
+    return false;
 }
 
 void HID_Keyboard::configureEndpoints() {
@@ -286,7 +285,7 @@ size_t HID_Keyboard::write(uint8_t b) {
 void HID_Keyboard::sendReport(struct KeyReport *keys) {
     uint8_t b[sizeof(struct KeyReport)+1];
 
-    b[0] = 2;
+    b[0] = 1;
     memcpy(&b[1], keys, sizeof(struct KeyReport));
     while(!_manager->sendBuffer(_epInt, b, sizeof(b)));
 }
