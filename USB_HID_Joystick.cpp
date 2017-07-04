@@ -135,6 +135,10 @@ bool HID_Joystick::onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint
 }
 
 bool HID_Joystick::onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
+    if (ep == _epInt) {
+//        sendReport((uint8_t *)&_rep, sizeof(_rep));
+        return true;
+    }
     return false;
 }
 

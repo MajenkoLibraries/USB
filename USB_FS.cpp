@@ -173,25 +173,6 @@ bool USBFS::enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) {
     _endpointBuffers[ep].txAB = 1 - _endpointBuffers[ep].txAB;
 	_endpointBuffers[ep].data = _endpointBuffers[ep].data ? 0 : 0x40;
 
-    switch(ep) {
-        case 0: U1EP0bits.EPSTALL=0; break;
-        case 1: U1EP1bits.EPSTALL=0; break;
-        case 2: U1EP2bits.EPSTALL=0; break;
-        case 3: U1EP3bits.EPSTALL=0; break;
-        case 4: U1EP4bits.EPSTALL=0; break;
-        case 5: U1EP5bits.EPSTALL=0; break;
-        case 6: U1EP6bits.EPSTALL=0; break;
-        case 7: U1EP7bits.EPSTALL=0; break;
-        case 8: U1EP8bits.EPSTALL=0; break;
-        case 9: U1EP9bits.EPSTALL=0; break;
-        case 10: U1EP10bits.EPSTALL=0; break;
-        case 11: U1EP11bits.EPSTALL=0; break;
-        case 12: U1EP12bits.EPSTALL=0; break;
-        case 13: U1EP13bits.EPSTALL=0; break;
-        case 14: U1EP14bits.EPSTALL=0; break;
-        case 15: U1EP15bits.EPSTALL=0; break;
-    }
-
 	return true;
 }
 
@@ -257,25 +238,6 @@ void USBFS::handleInterrupt() {
 				break;
 		}
 
-
-		switch(ep) {
-			case 0: U1EP0bits.EPSTALL=0; break;
-			case 1: U1EP1bits.EPSTALL=0; break;
-			case 2: U1EP2bits.EPSTALL=0; break;
-			case 3: U1EP3bits.EPSTALL=0; break;
-			case 4: U1EP4bits.EPSTALL=0; break;
-			case 5: U1EP5bits.EPSTALL=0; break;
-			case 6: U1EP6bits.EPSTALL=0; break;
-			case 7: U1EP7bits.EPSTALL=0; break;
-			case 8: U1EP8bits.EPSTALL=0; break;
-			case 9: U1EP9bits.EPSTALL=0; break;
-			case 10: U1EP10bits.EPSTALL=0; break;
-			case 11: U1EP11bits.EPSTALL=0; break;
-			case 12: U1EP12bits.EPSTALL=0; break;
-			case 13: U1EP13bits.EPSTALL=0; break;
-			case 14: U1EP14bits.EPSTALL=0; break;
-			case 15: U1EP15bits.EPSTALL=0; break;
-		}
 		U1CONbits.TOKBUSY=0;
 	}
 	if (U1IRbits.URSTIF) {

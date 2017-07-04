@@ -266,7 +266,8 @@ bool HID_Keyboard::onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_
 //    if ((ep == 0) && (target == _ifInt)) {
 //        return true;
 //    }
-//    if (ep == _epBulk) {
+//    if (ep == _epInt) {
+//        sendReport(&_keyReport);
 //    }
     return false;
 }
