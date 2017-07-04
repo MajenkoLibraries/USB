@@ -138,7 +138,7 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
                                 break;
 
                             case 0x02: { // Product
-                                    const char *prod = "MAX32";
+                                    const char *prod = "WF32";
                                     uint8_t mlen = strlen(prod);
                                     uint8_t o[mlen * 2 + 2];
                                     o[0] = mlen * 2 + 2;
@@ -176,7 +176,7 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
 
                 default:
                     for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
-                        if (scan->device->getDescriptor(ep, _target, outLength)) {
+                        if (scan->device->getDescriptor(ep, 0, _target, outLength)) {
                             return;
                         }
                     }
@@ -184,6 +184,14 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
                     break;
             }
 
+            break;
+
+        case 0x8106: // Get report descriptor
+            for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
+                if (scan->device->getReportDescriptor(ep, data[4], _target, outLength)) {
+                    return;
+                }
+            }
             break;
 
         case 0x0005: // Set Address

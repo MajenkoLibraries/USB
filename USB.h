@@ -168,7 +168,7 @@ class USBManager {
         }
 
         bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
-            _driver->sendBuffer(ep, data, len);
+            return _driver->sendBuffer(ep, data, len);
         }
 
         bool canEnqueuePacket(uint8_t ep) {
@@ -184,7 +184,8 @@ class USBDevice {
         virtual uint32_t populateConfigurationDescriptor(uint8_t *buf) = 0;
         virtual void initDevice(USBManager *manager) = 0;
 
-        virtual bool getDescriptor(uint8_t ep, uint8_t id, uint8_t maxlen) = 0;
+        virtual bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) = 0;
+        virtual bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) = 0;
         virtual void configureEndpoints() = 0;
 
         virtual bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) = 0;
@@ -220,7 +221,8 @@ class CDCACM : public USBDevice, public Stream {
         uint8_t getInterfaceCount();
         uint32_t populateConfigurationDescriptor(uint8_t *buf);
         void initDevice(USBManager *manager);
-        bool getDescriptor(uint8_t ep, uint8_t id, uint8_t maxlen);
+        bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) { return false; }
         void configureEndpoints();
 
         bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
@@ -232,6 +234,39 @@ class CDCACM : public USBDevice, public Stream {
         int read();
         int peek();
         void flush();
+};
+
+struct KeyReport {
+    uint8_t modifiers;
+    uint8_t reserved;
+    uint8_t keys[6];
+} __attribute__((packed));
+
+class HID_Keyboard : public USBDevice, public Print {
+    private:
+        USBManager *_manager;
+        uint8_t _ifInt;
+        uint8_t _epInt;
+        struct KeyReport _keyReport;
+        void sendReport(struct KeyReport *keys);
+
+    public:
+        uint8_t getDescriptorLength();
+        uint8_t getInterfaceCount();
+        uint32_t populateConfigurationDescriptor(uint8_t *buf);
+        void initDevice(USBManager *manager);
+        bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        void configureEndpoints();
+
+        bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        size_t write(uint8_t);
+
+        size_t press(uint8_t key);
+        size_t release(uint8_t key);
+        void releaseAll();
 };
     
 

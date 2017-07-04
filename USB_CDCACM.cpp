@@ -92,7 +92,7 @@ void CDCACM::initDevice(USBManager *manager) {
     _epBulk = _manager->allocateEndpoint();
 }
 
-bool CDCACM::getDescriptor(uint8_t ep, uint8_t id, uint8_t maxlen) {
+bool CDCACM::getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) {
     return false;
 }
 
