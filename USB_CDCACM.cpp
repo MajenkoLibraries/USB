@@ -38,14 +38,14 @@ uint32_t CDCACM::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] = 5;          // length
     buf[i++] = 0x24;       // union functional descriptor
     buf[i++] = 0x06;
-    buf[i++] = 0x00;       // comm
-    buf[i++] = 0x01;       // data
+    buf[i++] = _ifControl;
+    buf[i++] = _ifBulk;
 
     buf[i++] = 5;          // length
     buf[i++] = 0x24;       // call management functional descriptor
     buf[i++] = 0x01;
     buf[i++] = 0x00;
-    buf[i++] = 0x01;
+    buf[i++] = _ifBulk;
 
     buf[i++] = 7;          // length
     buf[i++] = 0x05;       // endpoint descriptor
