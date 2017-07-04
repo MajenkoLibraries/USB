@@ -152,6 +152,7 @@ class USBManager {
         const char *_manufacturer;
         const char *_product;
         const char *_serial;
+        char _defSerial[14];
 
 	public:
         void onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l);
