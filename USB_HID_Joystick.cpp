@@ -162,13 +162,6 @@ HID_Joystick::HID_Joystick() {
     _rep.hat = 0x0f;
 }
 
-void HID_Joystick::begin() {
-    //sendReport((uint8_t *)&_rep, sizeof(_rep));
-}
-
-void HID_Joystick::end() {
-}
-
 void HID_Joystick::setX(uint8_t x) {
     _rep.position.x = x;
     sendReport((uint8_t *)&_rep, sizeof(_rep));

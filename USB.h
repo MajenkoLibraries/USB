@@ -187,6 +187,9 @@ class USBManager {
             return _driver->canEnqueuePacket(ep);
         }
 
+        void begin(uint32_t baud) {}
+        void end() {}
+
 };
 
 class USBDevice {
@@ -288,6 +291,9 @@ class HID_Keyboard : public USBDevice, public Print {
         size_t press(uint8_t key);
         size_t release(uint8_t key);
         void releaseAll();
+
+        void begin(void) {};
+        void end(void) {};
 };
 
 #define MOUSE_LEFT 1
@@ -370,8 +376,8 @@ class HID_Joystick : public USBDevice {
         bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
 
         HID_Joystick(void);
-        void begin();
-        void end();
+        void begin(void) {};
+        void end(void) {};
         void setX(uint8_t x);
         void setY(uint8_t y);
         void setZ(uint8_t z);
@@ -385,5 +391,34 @@ class HID_Joystick : public USBDevice {
         void setHat(uint8_t d);
 };
 
+class HID_Raw : public USBDevice {
+    private:
+        USBManager *_manager;
+        uint8_t _ifInt;
+        uint8_t _epInt;
+        uint8_t _intRxA[64];
+        uint8_t _intRxB[64];
+        uint8_t _intTxA[64];
+        uint8_t _intTxB[64];
+        bool _nextPacketIsMine;
+        uint8_t _features[256];
+
+    public:
+        void sendReport(uint8_t *b, uint8_t l);
+        uint8_t getDescriptorLength();
+        uint8_t getInterfaceCount();
+        uint32_t populateConfigurationDescriptor(uint8_t *buf);
+        void initDevice(USBManager *manager);
+        bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        void configureEndpoints();
+
+        bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+
+        void begin(void) {};
+        void end(void) {};
+};
 
 #endif
