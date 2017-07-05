@@ -1,7 +1,7 @@
 #include <USB.h>
 
 uint8_t HID_Keyboard::getDescriptorLength() {
-    return 32 - 7;
+    return (9 + 9 + 7);
 }
 
 uint8_t HID_Keyboard::getInterfaceCount() {
@@ -205,19 +205,9 @@ uint32_t HID_Keyboard::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] =                      0x05;
     buf[i++] =                      0x80 | _epInt;
     buf[i++] =                      0x03;
-    buf[i++] =                      0x40; // Size = 64
+    buf[i++] =                      0x08; // Size = 8
     buf[i++] =                      0x00;
     buf[i++] =                      1;
-
-    /* Endpoint Descriptor */
-
-//    buf[i++] =                      0x07;
-//    buf[i++] =                      0x05;
-//    buf[i++] =                      _epInt;
-//    buf[i++] =                      0x03;
-//    buf[i++] =                      0x40; // Size = 64
-//    buf[i++] =                      0x00;
-//    buf[i++] =                      1;
 
     return i;
 }
@@ -242,8 +232,7 @@ bool HID_Keyboard::getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, u
 }
 
 void HID_Keyboard::configureEndpoints() {
-//    _manager->addEndpoint(_epInt, EP_IN, EP_INT, 64);
-    _manager->addEndpoint(_epInt, EP_OUT, EP_INT, 64);
+    _manager->addEndpoint(_epInt, EP_OUT, EP_INT, 8);
 }
 
 
