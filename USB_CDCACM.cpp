@@ -104,7 +104,7 @@ void CDCACM::configureEndpoints() {
 
 
 bool CDCACM::onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
-    if (target == _ifControl) {
+    if (data[4] == _ifControl) {
         uint16_t signature = (data[0] << 8) | data[1];
         switch (signature) {
             case 0x2120:

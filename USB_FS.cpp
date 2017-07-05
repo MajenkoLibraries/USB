@@ -185,6 +185,9 @@ bool USBFS::sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
 
     _endpointBuffers[ep].length = len;
     _endpointBuffers[ep].buffer = (uint8_t *)malloc(len);
+    if (!_endpointBuffers[ep].buffer) {
+        return false;
+    }
     memcpy(_endpointBuffers[ep].buffer, data, len);
     _endpointBuffers[ep].bufferPtr = _endpointBuffers[ep].buffer;
 

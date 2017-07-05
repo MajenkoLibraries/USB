@@ -144,14 +144,15 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
                         uint32_t len = sizeof(struct ConfigurationDescriptor);
                         uint8_t faces = 0;
 
-
-
                         for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
                             len += scan->device->getDescriptorLength();
                             faces += scan->device->getInterfaceCount();
                         }
 
-                        uint8_t *buf = (uint8_t *)malloc(len);
+                        uint8_t *buf = (uint8_t *)alloca(len);
+                        if (!buf) {
+                            break;
+                        }
                         uint8_t *ptr = buf;
                         struct ConfigurationDescriptor *desc = (struct ConfigurationDescriptor *)buf;
 
@@ -170,7 +171,7 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
                             ptr += scan->device->populateConfigurationDescriptor(ptr);
                         }
                         _driver->sendBuffer(0, buf, min(outLength, len));
-                        free(buf);
+//                        free(buf);
                     }
                     break;
 
@@ -291,6 +292,9 @@ void USBManager::onOutPacket(uint8_t ep, uint8_t *data, uint32_t l) {
 
 void USBManager::addDevice(USBDevice *d) {
     struct USBDeviceList *newDevice = (struct USBDeviceList *)malloc(sizeof(struct USBDeviceList));
+    if (!newDevice) {
+        return;
+    }
     struct USBDeviceList *scan;
     d->initDevice(this);
     newDevice->device = d;
