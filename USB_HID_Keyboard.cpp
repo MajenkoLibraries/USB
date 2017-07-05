@@ -232,7 +232,7 @@ bool HID_Keyboard::getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, u
 }
 
 void HID_Keyboard::configureEndpoints() {
-    _manager->addEndpoint(_epInt, EP_OUT, EP_INT, 8);
+    _manager->addEndpoint(_epInt, EP_OUT, EP_INT, 8, _intA, _intB);
 }
 
 

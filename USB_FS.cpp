@@ -34,8 +34,8 @@ bool USBFS::enableUSB() {
 
 	U1PWRCbits.USBPWR = 1;
 
-    addEndpoint(0, EP_IN, EP_CTL, 64);
-    addEndpoint(0, EP_OUT, EP_CTL, 64);
+    addEndpoint(0, EP_IN, EP_CTL, 64, _ctlRxA, _ctlRxB);
+    addEndpoint(0, EP_OUT, EP_CTL, 64, _ctlTxA, _ctlTxB);
 	return true;
 }
 
@@ -45,24 +45,13 @@ bool USBFS::disableUSB() {
 }
 	
 
-bool USBFS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size) {
+bool USBFS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b) {
 	if (id > 15) return false;
     _endpointBuffers[id].data = 0x40;
     _endpointBuffers[id].size = size;
 	if (direction == EP_IN) {
-		if (_endpointBuffers[id].rx[0] == NULL) {
-			_endpointBuffers[id].rx[0] = (uint8_t *)malloc(size);
-		}
-		if (_endpointBuffers[id].rx[0] == NULL) {
-			return false;
-		}
-		if (_endpointBuffers[id].rx[1] == NULL) {
-			_endpointBuffers[id].rx[1] = (uint8_t *)malloc(size);
-		}
-		if (_endpointBuffers[id].rx[1] == NULL) {
-			free(_endpointBuffers[id].rx[0]);
-			return false;
-		}
+        _endpointBuffers[id].rx[0] = a;
+        _endpointBuffers[id].rx[1] = b;
 		_bufferDescriptorTable[id][0].buffer = (uint8_t *)KVA_TO_PA((uint32_t)_endpointBuffers[id].rx[0]);
 		_bufferDescriptorTable[id][0].flags = (_endpointBuffers[id].size << 16) | 0x80;
 		_bufferDescriptorTable[id][1].buffer = (uint8_t *)KVA_TO_PA((uint32_t)_endpointBuffers[id].rx[1]);
@@ -86,20 +75,8 @@ bool USBFS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t siz
 			case 15: U1EP15bits.EPRXEN = 1; break;
 		}
 	} else {
-		if (_endpointBuffers[id].tx[0] == NULL) {
-			_endpointBuffers[id].tx[0] = (uint8_t *)malloc(80);
-		}
-		if (_endpointBuffers[id].tx[0] == NULL) {
-			return false;
-		}
-		if (_endpointBuffers[id].tx[1] == NULL) {
-			_endpointBuffers[id].tx[1] = (uint8_t *)malloc(80);
-		}
-		if (_endpointBuffers[id].tx[1] == NULL) {
-			free(_endpointBuffers[id].tx[0]);
-			return false;
-		}
-//		_endpointBuffers[id].txAB = 0;
+        _endpointBuffers[id].tx[0] = a;
+        _endpointBuffers[id].tx[1] = b;
 		_bufferDescriptorTable[id][2].buffer = (uint8_t *)KVA_TO_PA((uint32_t)_endpointBuffers[id].tx[0]);
 		_bufferDescriptorTable[id][2].flags = 0;
 		_bufferDescriptorTable[id][3].buffer = (uint8_t *)KVA_TO_PA((uint32_t)_endpointBuffers[id].tx[1]);

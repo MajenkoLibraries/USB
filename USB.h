@@ -88,7 +88,7 @@ class USBDriver {
 		USBDriver() {}
 		virtual bool enableUSB() = 0;
 		virtual bool disableUSB() = 0;
-		virtual bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size) = 0;
+		virtual bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b) = 0;
 		virtual bool enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) = 0;
         virtual bool canEnqueuePacket(uint8_t ep) = 0;
         virtual bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) = 0;
@@ -108,11 +108,16 @@ class USBFS : public USBDriver {
 		static USBFS *_this;
 		uint32_t _enabledEndpoints;
 		struct epBuffer _endpointBuffers[16];
+
+        uint8_t _ctlRxA[64];
+        uint8_t _ctlRxB[64];
+        uint8_t _ctlTxA[64];
+        uint8_t _ctlTxB[64];
 	public:
 		USBFS() : _enabledEndpoints(0) { _this = this; }
 		bool enableUSB();
 		bool disableUSB();
-		bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size);
+		bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b);
 		bool enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len);
 		bool setAddress(uint8_t address);
         bool canEnqueuePacket(uint8_t ep);
@@ -170,8 +175,8 @@ class USBManager {
         uint8_t allocateInterface();
         uint8_t allocateEndpoint();
 
-        bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size) {
-            return _driver->addEndpoint(id, direction, type, size);
+        bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b) {
+            return _driver->addEndpoint(id, direction, type, size, a, b);
         }
 
         bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
@@ -220,6 +225,13 @@ class CDCACM : public USBDevice, public Stream {
         volatile uint8_t _rxHead;
         volatile uint8_t _rxTail;
 
+        uint8_t _ctlA[8];
+        uint8_t _ctlB[8];
+        uint8_t _bulkRxA[64];
+        uint8_t _bulkRxB[64];
+        uint8_t _bulkTxA[64];
+        uint8_t _bulkTxB[64];
+
     public:
         CDCACM() : _txPos(0), _rxHead(0), _rxTail(0) {}
 
@@ -256,6 +268,8 @@ class HID_Keyboard : public USBDevice, public Print {
         uint8_t _epInt;
         struct KeyReport _keyReport;
         void sendReport(struct KeyReport *keys);
+        uint8_t _intA[8];
+        uint8_t _intB[8];
 
     public:
         uint8_t getDescriptorLength();
@@ -290,6 +304,8 @@ class HID_Mouse : public USBDevice {
         void sendReport(const uint8_t *b, uint8_t l);
         uint8_t _buttons;
         void buttons(uint8_t b);
+        uint8_t _intA[8];
+        uint8_t _intB[8];
 
     public:
         uint8_t getDescriptorLength();
@@ -337,6 +353,8 @@ class HID_Joystick : public USBDevice {
         uint8_t _epInt;
         void sendReport(const uint8_t *b, uint8_t l);
         struct JoystickReport _rep;
+        uint8_t _intA[16];
+        uint8_t _intB[16];
 
     public:
         uint8_t getDescriptorLength();

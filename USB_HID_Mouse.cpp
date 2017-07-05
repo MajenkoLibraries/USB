@@ -97,7 +97,7 @@ bool HID_Mouse::getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint
 }
 
 void HID_Mouse::configureEndpoints() {
-    _manager->addEndpoint(_epInt, EP_OUT, EP_INT, 8);
+    _manager->addEndpoint(_epInt, EP_OUT, EP_INT, 8, _intA, _intB);
 }
 
 

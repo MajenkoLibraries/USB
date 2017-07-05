@@ -97,9 +97,9 @@ bool CDCACM::getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxle
 }
 
 void CDCACM::configureEndpoints() {
-    _manager->addEndpoint(_epControl, EP_OUT, EP_CTL, 8);
-    _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 64);
-    _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 64);
+    _manager->addEndpoint(_epControl, EP_OUT, EP_CTL, 8, _ctlA, _ctlB);
+    _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 64, _bulkRxA, _bulkRxB);
+    _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 64, _bulkTxA, _bulkTxB);
 }
 
 

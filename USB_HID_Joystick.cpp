@@ -104,7 +104,7 @@ bool HID_Joystick::getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, u
 }
 
 void HID_Joystick::configureEndpoints() {
-    _manager->addEndpoint(_epInt, EP_OUT, EP_INT, 16);
+    _manager->addEndpoint(_epInt, EP_OUT, EP_INT, 16, _intA, _intB);
 }
 
 
