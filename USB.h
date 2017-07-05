@@ -194,7 +194,7 @@ class USBManager {
 
 class USBDevice {
     public:
-        virtual uint8_t getDescriptorLength() = 0;
+        virtual uint16_t getDescriptorLength() = 0;
         virtual uint8_t getInterfaceCount() = 0;
         virtual uint32_t populateConfigurationDescriptor(uint8_t *buf) = 0;
         virtual void initDevice(USBManager *manager) = 0;
@@ -239,7 +239,7 @@ class CDCACM : public USBDevice, public Stream {
         CDCACM() : _txPos(0), _rxHead(0), _rxTail(0) {}
 
         operator int();
-        uint8_t getDescriptorLength();
+        uint16_t getDescriptorLength();
         uint8_t getInterfaceCount();
         uint32_t populateConfigurationDescriptor(uint8_t *buf);
         void initDevice(USBManager *manager);
@@ -275,7 +275,7 @@ class HID_Keyboard : public USBDevice, public Print {
         uint8_t _intB[8];
 
     public:
-        uint8_t getDescriptorLength();
+        uint16_t getDescriptorLength();
         uint8_t getInterfaceCount();
         uint32_t populateConfigurationDescriptor(uint8_t *buf);
         void initDevice(USBManager *manager);
@@ -314,7 +314,7 @@ class HID_Mouse : public USBDevice {
         uint8_t _intB[8];
 
     public:
-        uint8_t getDescriptorLength();
+        uint16_t getDescriptorLength();
         uint8_t getInterfaceCount();
         uint32_t populateConfigurationDescriptor(uint8_t *buf);
         void initDevice(USBManager *manager);
@@ -363,7 +363,7 @@ class HID_Joystick : public USBDevice {
         uint8_t _intB[16];
 
     public:
-        uint8_t getDescriptorLength();
+        uint16_t getDescriptorLength();
         uint8_t getInterfaceCount();
         uint32_t populateConfigurationDescriptor(uint8_t *buf);
         void initDevice(USBManager *manager);
@@ -405,7 +405,7 @@ class HID_Raw : public USBDevice {
 
     public:
         void sendReport(uint8_t *b, uint8_t l);
-        uint8_t getDescriptorLength();
+        uint16_t getDescriptorLength();
         uint8_t getInterfaceCount();
         uint32_t populateConfigurationDescriptor(uint8_t *buf);
         void initDevice(USBManager *manager);

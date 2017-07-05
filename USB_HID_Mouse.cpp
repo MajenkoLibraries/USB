@@ -1,7 +1,7 @@
 #include <USB.h>
 
 
-uint8_t HID_Mouse::getDescriptorLength() {
+uint16_t HID_Mouse::getDescriptorLength() {
     return (9 + 9 + 7);
 }
 

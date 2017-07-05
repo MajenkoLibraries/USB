@@ -1,6 +1,6 @@
 #include <USB.h>
 
-uint8_t HID_Keyboard::getDescriptorLength() {
+uint16_t HID_Keyboard::getDescriptorLength() {
     return (9 + 9 + 7);
 }
 

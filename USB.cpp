@@ -112,7 +112,7 @@ void USBManager::begin() {
 
 void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
     uint16_t signature = (data[0] << 8) | data[1];
-    uint8_t outLength = data[6];
+    uint16_t outLength = (data[7] << 8) | data[6];
 
     _target = data[3];
 

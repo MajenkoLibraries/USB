@@ -1,6 +1,6 @@
 #include <USB.h>
 
-uint8_t HID_Raw::getDescriptorLength() {
+uint16_t HID_Raw::getDescriptorLength() {
     return (9 + 9 + 7 + 7);
 }
 

@@ -3,7 +3,7 @@
 #define CDC_ACT_SET_LINE_CODING 1
 
 
-uint8_t CDCACM::getDescriptorLength() {
+uint16_t CDCACM::getDescriptorLength() {
     return 58;
 }
 
