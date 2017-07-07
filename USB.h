@@ -24,8 +24,6 @@ struct epBuffer {
     uint8_t *bufferPtr;
 };
 
-
-
 struct DeviceDescriptor {
     uint8_t     bLength;
     uint8_t     bDescriptorType;
@@ -86,14 +84,14 @@ class USBDevice;
 class USBDriver {
 	public:
 		USBDriver() {}
-		virtual bool enableUSB() = 0;
-		virtual bool disableUSB() = 0;
-		virtual bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b) = 0;
-		virtual bool enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) = 0;
-        virtual bool canEnqueuePacket(uint8_t ep) = 0;
-        virtual bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) = 0;
-		virtual bool setAddress(uint8_t address) = 0;
-        virtual void setManager(USBManager *mgr) {
+		virtual bool enableUSB() = 0;       // Turn on and configure USB
+		virtual bool disableUSB() = 0;      // Turn off USB
+		virtual bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b) = 0;    // Add an endpoint
+		virtual bool enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) = 0;  // Queue a single packet on an endpoint
+        virtual bool canEnqueuePacket(uint8_t ep) = 0;  // True if a packet can be enqueued
+        virtual bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) = 0; // Send an entire buffer through and endpoint
+		virtual bool setAddress(uint8_t address) = 0;   // Set the device address
+        virtual void setManager(USBManager *mgr) {  // Add the manager object to this driver.
             _manager = mgr;
         }
 
@@ -123,11 +121,6 @@ class USBFS : public USBDriver {
         bool canEnqueuePacket(uint8_t ep);
         bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len);
 
-
-        char debugLog[10][80];
-        void initDebug();
-        void updateDebug();
-        void log(const char *);
 
 		void handleInterrupt();
 
@@ -194,18 +187,18 @@ class USBManager {
 
 class USBDevice {
     public:
-        virtual uint16_t getDescriptorLength() = 0;
-        virtual uint8_t getInterfaceCount() = 0;
-        virtual uint32_t populateConfigurationDescriptor(uint8_t *buf) = 0;
-        virtual void initDevice(USBManager *manager) = 0;
+        virtual uint16_t getDescriptorLength() = 0; // Returns the length of the config descriptor block
+        virtual uint8_t getInterfaceCount() = 0;    // Returns the number of interfaces for this device
+        virtual uint32_t populateConfigurationDescriptor(uint8_t *buf) = 0; // Fills *buf with the config descriptor data. Returns the number of bytes used
+        virtual void initDevice(USBManager *manager) = 0;   // Initialize a device and set the manager object
+        
+        virtual bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) = 0; // Called when GET_DESCRIPTOR arrives
+        virtual bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) = 0;   // called when GET_REPORT_DESCRIPTOR arrives
+        virtual void configureEndpoints() = 0;  // Configures all the endpoints for the device
 
-        virtual bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) = 0;
-        virtual bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) = 0;
-        virtual void configureEndpoints() = 0;
-
-        virtual bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) = 0;
-        virtual bool onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) = 0;
-        virtual bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) = 0;
+        virtual bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) = 0;  // Called when a SETUP packet arrives
+        virtual bool onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) = 0; // Called when an IN packet is requested
+        virtual bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) = 0;    // Called when an OUT packet arrives
 };
 
 class CDCACM : public USBDevice, public Stream {
