@@ -8,32 +8,38 @@ Usage
 
 First create objects for the USB interface and manager:
 
-    #include <USB.h>
+```C++
+#include <USB.h>
 
-    USBFS usbDriver;
-    USBManager USB(usbDriver, 0xDEAD, 0xBEEF); // Provide the VID and PID here
+USBFS usbDriver;
+USBManager USB(usbDriver, 0xDEAD, 0xBEEF); // Provide the VID and PID here
+```
 
 Then create objects for each device you want:
 
-    CDCACM usbSerialPort;
-    HID_Keyboard Keyboard;
-    HID_Mouse Mouse;
-    HID_Joystick Joystick;
-    HID_Raw HID;
+```C++
+CDCACM usbSerialPort;
+HID_Keyboard Keyboard;
+HID_Mouse Mouse;
+HID_Joystick Joystick;
+HID_Raw HID;
+```
 
 You can have as many of each device as you like, endpoints and heap permitting.
 
 Next add the devices to the manager and start the USB system:
 
-    void setup() {
-        USB.addDevice(&usbSerialPort);
-        USB.addDevice(&Keyboard);
-        USB.addDevice(&Mouse);
-        USB.addDevice(&Joystick);
-        USB.addDevice(&HID);
+```C++
+void setup() {
+    USB.addDevice(&usbSerialPort);
+    USB.addDevice(&Keyboard);
+    USB.addDevice(&Mouse);
+    USB.addDevice(&Joystick);
+    USB.addDevice(&HID);
 
-        USB.begin();
-    }
+    USB.begin();
+}
+```
 
 The order you add the devices is the order they appear in the configuration descriptor and thus the interface number(s) that get
 assigned to them.
