@@ -67,7 +67,7 @@ uint32_t Audio_MIDI::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] = 5;                                // bDescriptorType = ENDPOINT
     buf[i++] = _epBulk;                          // bEndpointAddress
     buf[i++] = 0x02;                             // bmAttributes (0x02=bulk)
-    buf[i++] = 0x04;                     // |
+    buf[i++] = 0x40;                     // |
     buf[i++] = 0;                        // wMaxPacketSize
     buf[i++] = 0;                                // bInterval
     buf[i++] = 0;                                // bRefresh
@@ -83,7 +83,7 @@ uint32_t Audio_MIDI::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] = 5;                                // bDescriptorType = ENDPOINT
     buf[i++] = 0x80 | _epBulk;                   // bEndpointAddress
     buf[i++] = 0x02;                             // bmAttributes (0x02=bulk)
-    buf[i++] = 0x04;                     // | 
+    buf[i++] = 0x40;                     // | 
     buf[i++] = 0;                        // wMaxPacketSize
     buf[i++] = 0;                                // bInterval
     buf[i++] = 0;                                // bRefresh
@@ -114,8 +114,8 @@ bool Audio_MIDI::getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uin
 }
 
 void Audio_MIDI::configureEndpoints() {
-    _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 4, _bulkRxA, _bulkRxB);
-    _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 4, _bulkTxA, _bulkTxB);
+    _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 64, _bulkRxA, _bulkRxB);
+    _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 64, _bulkTxA, _bulkTxB);
 }
 
 
@@ -128,6 +128,14 @@ bool Audio_MIDI::onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t 
 }
 
 bool Audio_MIDI::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
+    if (ep == _epBulk) {
+        if (_onMidiMessage != NULL) {
+            for (int i = 0; i < l; i += 4) {
+                _onMidiMessage(data[i+1], data[i+2], data[i+3]);
+            }
+        }
+        _manager->sendBuffer(_epBulk, NULL, 0);
+    }
     return false;
 }
 
@@ -149,5 +157,7 @@ bool Audio_MIDI::noteOff(uint8_t channel, uint8_t note) {
     sendMessage(0, 0x08, 0x80 | (channel & 0xF), note & 0x7F, 0);
 }
 
-
+void Audio_MIDI::onMidiMessage(void (*func)(uint8_t status, uint8_t d0, uint8_t d1)) {
+    _onMidiMessage = func;
+}
 

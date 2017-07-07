@@ -424,6 +424,8 @@ class Audio_MIDI : public USBDevice {
         uint8_t _bulkTxA[64];
         uint8_t _bulkTxB[64];
 
+        void (*_onMidiMessage)(uint8_t status, uint8_t d0, uint8_t d1);
+
     public:
         uint16_t getDescriptorLength();
         uint8_t getInterfaceCount();
@@ -444,6 +446,7 @@ class Audio_MIDI : public USBDevice {
 
         bool noteOn(uint8_t channel, uint8_t note, uint8_t velocity);
         bool noteOff(uint8_t channel, uint8_t note);
+        void onMidiMessage(void (*func)(uint8_t status, uint8_t d0, uint8_t d1));
 
 };
 
