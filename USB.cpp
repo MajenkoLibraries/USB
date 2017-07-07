@@ -114,23 +114,23 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
     uint16_t signature = (data[0] << 8) | data[1];
     uint16_t outLength = (data[7] << 8) | data[6];
 
-    _target = data[3];
+    _target = (data[5] << 8) | data[4];
 
     switch (signature) {
         case 0x8006: // Get Descriptor
-            switch (_target) {
+            switch (data[3]) {
                 case 1: { // Device Descriptor
                         struct DeviceDescriptor o;
                         o.bLength = sizeof(struct DeviceDescriptor);
                         o.bDescriptorType = 0x01;
                         o.bcdUSB = 0x0101;
-                        o.bDeviceClass = 0x02;
-                        o.bDeviceSubClass = 0x00;
-                        o.bDeviceProtocol = 0x00;
+                        o.bDeviceClass = 0xEF; //0x00;
+                        o.bDeviceSubClass = 0x02; //0x00;
+                        o.bDeviceProtocol = 0x01; //0x00;
                         o.bMaxPacketSize = 0x40;
                         o.idVendor = _vid;
                         o.idProduct = _pid;
-                        o.bcdDevice = 0x0180;
+                        o.bcdDevice = 0x0200;
                         o.iManufacturer = 0x01;
                         o.iProduct = 0x02;
                         o.iSerialNumber = 0x03;
@@ -161,7 +161,7 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
                         desc->wTotalLength = len;
                         desc->bNumInterfaces = faces;
                         desc->bConfigurationValue = 1;
-                        desc->iConfiguration = 1;
+                        desc->iConfiguration = 0;
                         desc->bmAttributes = 0x80;
                         desc->bMaxPower = 250;
 
@@ -236,7 +236,7 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
 
                 default:
                     for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
-                        if (scan->device->getDescriptor(ep, 0, _target, outLength)) {
+                        if (scan->device->getDescriptor(ep, 0, data[3], outLength)) {
                             return;
                         }
                     }

@@ -4,7 +4,7 @@
 
 
 uint16_t CDCACM::getDescriptorLength() {
-    return 58;
+    return 58 + 8;
 }
 
 uint8_t CDCACM::getInterfaceCount() {
@@ -13,6 +13,16 @@ uint8_t CDCACM::getInterfaceCount() {
 
 uint32_t CDCACM::populateConfigurationDescriptor(uint8_t *buf) {
     uint8_t i = 0;
+
+    buf[i++] =     8;                                      // bLength
+    buf[i++] =     11;                                     // bDescriptorType
+    buf[i++] =     _ifControl;                             // bFirstInterface
+    buf[i++] =     2;                                      // bInterfaceCount
+    buf[i++] =     0x02;                                   // bFunctionClass
+    buf[i++] =     0x02;                                   // bFunctionSubClass
+    buf[i++] =     0x01;                                   // bFunctionProtocol
+    buf[i++] =     4;                                      // iFunction
+
 
     buf[i++] = 9;          // length
     buf[i++] = 0x04;       // interface descriptor

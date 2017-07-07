@@ -108,12 +108,6 @@ bool HID_Raw::onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t 
             }
             break;
         case 0x2109: {
-                Serial.print("F: ");
-                for (int i = 0; i < l; i++) {
-                    Serial.print(data[i], HEX);
-                    Serial.print(" ");
-                }
-                Serial.println();
                 _nextPacketIsMine = true;
                 return true;
             }
@@ -138,12 +132,6 @@ bool HID_Raw::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l)
     if (ep == 0) {
         if (_nextPacketIsMine == true) {
             _features[data[0]] = data[1];
-            Serial.print("D: ");
-            for (int i = 0; i < l; i++) {
-                Serial.print(data[i], HEX);
-                Serial.print(" ");
-            }
-            Serial.println();
             _manager->sendBuffer(0, NULL, 0);
             _nextPacketIsMine = false;
             return true;
@@ -151,12 +139,6 @@ bool HID_Raw::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l)
     }
 
     if (ep == _epInt) {
-        Serial.print("O: ");
-        for (int i = 0; i < l; i++) {
-            Serial.print(data[i], HEX);
-            Serial.print(" ");
-        }
-        Serial.println();
         return true;
     }
     return false;
