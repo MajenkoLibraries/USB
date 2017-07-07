@@ -414,4 +414,37 @@ class HID_Raw : public USBDevice {
         void end(void) {};
 };
 
+class Audio_MIDI : public USBDevice {
+    private:
+        USBManager *_manager;
+        uint8_t _ifBulk;
+        uint8_t _epBulk;
+        uint8_t _bulkRxA[64];
+        uint8_t _bulkRxB[64];
+        uint8_t _bulkTxA[64];
+        uint8_t _bulkTxB[64];
+
+    public:
+        uint16_t getDescriptorLength();
+        uint8_t getInterfaceCount();
+        uint32_t populateConfigurationDescriptor(uint8_t *buf);
+        void initDevice(USBManager *manager);
+        bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        void configureEndpoints();
+
+        bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+
+        void begin(void) {};
+        void end(void) {};
+
+        bool sendMessage(uint8_t cable, uint8_t code, uint8_t b0, uint8_t b1, uint8_t b2);
+
+        bool noteOn(uint8_t channel, uint8_t note, uint8_t velocity);
+        bool noteOff(uint8_t channel, uint8_t note);
+
+};
+
 #endif
