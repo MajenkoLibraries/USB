@@ -2,6 +2,13 @@
 
 #define CDC_ACT_SET_LINE_CODING 1
 
+struct CDCLineCoding {
+    uint32_t dwDTERate;
+    uint8_t bCharFormat;
+    uint8_t bParityType;
+    uint8_t bDataBits;
+} __attribute__((packed));
+
 
 uint16_t CDCACM::getDescriptorLength() {
     return 58 + 8;
@@ -124,6 +131,16 @@ bool CDCACM::onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l
                 _lineState = data[2];
                 _manager->sendBuffer(0, NULL, 0);
                 return true;
+            case 0xA121: {
+                    struct CDCLineCoding lc;
+                    lc.dwDTERate = _baud;
+                    lc.bCharFormat = _stopBits;
+                    lc.bParityType = _parity;
+                    lc.bDataBits = _dataBits;
+                    _manager->sendBuffer(0, (const uint8_t *)&lc, 7);
+                    return true;
+                }
+                break;
         }
     }
     return false;
@@ -141,13 +158,6 @@ bool CDCACM::onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
     }
     return false;
 }
-
-struct CDCLineCoding {
-    uint32_t dwDTERate;
-    uint8_t bCharFormat;
-    uint8_t bParityType;
-    uint8_t bDataBits;
-} __attribute__((packed));
 
 bool CDCACM::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
     if (ep == 0) {
