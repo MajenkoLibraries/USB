@@ -35,6 +35,16 @@ Next add the devices to the manager and start the USB system:
         USB.begin();
     }
 
+The order you add the devices is the order they appear in the configuration descriptor and thus the interface number(s) that get
+assigned to them.
+
 All devices are "begun" automatically (no xxx.begin(...) functions).
 
 Most devices adhere to the Arduino interface (Mouse.click(), Keyboard.press(), etc) where such an interface exists.
+
+Windows
+-------
+
+In Windows 10 no drivers are needed. The Class Compliant drivers handle all the devices. In earlier versions of Windows you will need a
+driver (.inf file) that describes all the interfaces. At the moment it's up to you to craft one of those files (modify an existing
+one from elsewhere).
