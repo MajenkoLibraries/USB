@@ -249,7 +249,7 @@ class CDCACM : public USBDevice, public Stream {
         bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
 
         size_t write(uint8_t);
-        size_t write(uint8_t *b, size_t len);
+        size_t write(const uint8_t *b, size_t len);
 
         int available();
         int read();

@@ -150,12 +150,12 @@ bool CDCACM::onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
     if ((ep == 0) && (target == _ifControl)) {
         return true;
     }
-    if (ep == _epBulk) {
-        if (_txPos > 0) {
-            _manager->sendBuffer(_epBulk, _txBuffer, _txPos);
-            _txPos = 0;
-        }
-    }
+//    if (ep == _epBulk) {
+//        if (_txPos > 0) {
+//            _manager->sendBuffer(_epBulk, _txBuffer, _txPos);
+//            _txPos = 0;
+//        }
+//    }
     return false;
 }
 
@@ -196,16 +196,17 @@ size_t CDCACM::write(uint8_t b) {
     return 1;
 }
 
-size_t CDCACM::write(uint8_t *b, size_t len) {
+size_t CDCACM::write(const uint8_t *b, size_t len) {
 
     if (_lineState == 0) return 0;
 
     size_t pos = 0;
-    int32_t toSend = min(64, len);
-    while (toSend > 0) {
+    int32_t slen = len;
+    int32_t toSend = min(64, slen);
+    while (pos < len) {
         _manager->sendBuffer(_epBulk, &b[pos], toSend);
         pos += toSend;
-        len -= toSend;
+        slen -= toSend;
     }
     return 1;
 }
