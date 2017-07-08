@@ -176,7 +176,7 @@ bool USBFS::sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
             }
         }
     } else {
-        while (!canEnqueuePacket(ep)) {
+        while (_endpointBuffers[ep].buffer != NULL) {
             if (millis() - ts > USB_TX_TIMEOUT) return false;
         }
     }
