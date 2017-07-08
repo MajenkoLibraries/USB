@@ -23,7 +23,7 @@ static void TXLedSwitchOff(int id, void *tptr) {
     }
 }
 #else
-# define TXOon()
+# define TXOn()
 #endif
 
 #ifdef PIN_LED_RX
