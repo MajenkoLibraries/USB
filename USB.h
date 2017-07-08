@@ -7,6 +7,8 @@
 # include <WProgram.h>
 #endif
 
+#define USB_TX_TIMEOUT 75
+
 struct bdt
 {
         uint32_t flags;

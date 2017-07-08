@@ -151,6 +151,6 @@ void HID_Raw::sendReport(uint8_t *b, uint8_t l) {
     memcpy(data, b, l);
     uint32_t ts = millis();
     while(!_manager->sendBuffer(_epInt, data, 64)) {
-        if (millis() - ts > 5) return;
+        if (millis() - ts > USB_TX_TIMEOUT) return;
     }
 }

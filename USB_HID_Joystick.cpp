@@ -147,7 +147,7 @@ bool HID_Joystick::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32
 void HID_Joystick::sendReport(const uint8_t *buf, uint8_t l) {
     uint32_t ts = millis();
     while (!_manager->sendBuffer(_epInt, buf, l)) {
-        if (millis() - ts > 10) return;
+        if (millis() - ts > USB_TX_TIMEOUT) return;
     }
 }
 

@@ -144,7 +144,7 @@ bool Audio_MIDI::sendMessage(uint8_t cable, uint8_t code, uint8_t b0, uint8_t b1
     uint32_t msg = ((cable & 0xF) << 4) | ((code & 0xF) << 0) | (b0 << 8) | (b1 << 16) | (b2 << 24);
     uint32_t ts = millis();
     while (!_manager->sendBuffer(_epBulk, (uint8_t *)&msg, 4)) {
-        if (millis() - ts > 10) return false;
+        if (millis() - ts > USB_TX_TIMEOUT) return false;
     }
     return true;
 }

@@ -283,7 +283,7 @@ size_t HID_Keyboard::write(uint8_t b) {
 void HID_Keyboard::sendReport(struct KeyReport *keys) {
     uint32_t ts = millis();
     while(!_manager->sendBuffer(_epInt, (uint8_t *)keys, sizeof(struct KeyReport))) {
-        if (millis() - ts > 5) return;
+        if (millis() - ts > USB_TX_TIMEOUT) return;
     }
 }
 
