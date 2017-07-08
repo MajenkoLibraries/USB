@@ -113,8 +113,11 @@ class USBFS : public USBDriver {
         uint8_t _ctlRxB[64];
         uint8_t _ctlTxA[64];
         uint8_t _ctlTxB[64];
+
+        volatile bool _inIsr;
+
 	public:
-		USBFS() : _enabledEndpoints(0) { _this = this; }
+		USBFS() : _enabledEndpoints(0), _inIsr(false) { _this = this; }
 		bool enableUSB();
 		bool disableUSB();
 		bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b);

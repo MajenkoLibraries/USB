@@ -156,21 +156,28 @@ bool USBFS::enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) {
 bool USBFS::sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
 
     uint32_t ts = millis();
-    while (_endpointBuffers[ep].buffer != NULL) {
-        if (millis() - ts > USB_TX_TIMEOUT) return false;
-        if (canEnqueuePacket(ep)) {
-            if (_endpointBuffers[ep].length > 0) {
-                uint32_t toSend = min(_endpointBuffers[ep].size, _endpointBuffers[ep].length);
-                enqueuePacket(ep, _endpointBuffers[ep].bufferPtr, toSend);
-                _endpointBuffers[ep].length -= toSend;
-                _endpointBuffers[ep].bufferPtr += toSend;
-            } else {
-                if (_endpointBuffers[ep].buffer != NULL) {
-                    free(_endpointBuffers[ep].buffer);
-                    _endpointBuffers[ep].buffer = NULL;
-                }
-            }
 
+    if (_inIsr) {
+        while (_endpointBuffers[ep].buffer != NULL) {
+            if (millis() - ts > USB_TX_TIMEOUT) return false;
+            if (canEnqueuePacket(ep)) {
+                if (_endpointBuffers[ep].length > 0) {
+                    uint32_t toSend = min(_endpointBuffers[ep].size, _endpointBuffers[ep].length);
+                    enqueuePacket(ep, _endpointBuffers[ep].bufferPtr, toSend);
+                    _endpointBuffers[ep].length -= toSend;
+                    _endpointBuffers[ep].bufferPtr += toSend;
+                } else {
+                    if (_endpointBuffers[ep].buffer != NULL) {
+                        free(_endpointBuffers[ep].buffer);
+                        _endpointBuffers[ep].buffer = NULL;
+                    }
+                }
+
+            }
+        }
+    } else {
+        while (!canEnqueuePacket(ep)) {
+            if (millis() - ts > USB_TX_TIMEOUT) return false;
         }
     }
 
@@ -194,6 +201,7 @@ bool USBFS::sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
 
 void USBFS::handleInterrupt() {
     uint32_t toSend;
+    _inIsr = true;
 
 	if (U1IRbits.TRNIF) {
 
@@ -259,6 +267,7 @@ void USBFS::handleInterrupt() {
 	U1EIR = 0xFF;
 	U1IR = 0xFF;
 	clearIntFlag(_USB_IRQ);
+    _inIsr = false;
 }
 
 bool USBFS::setAddress(uint8_t address) {
