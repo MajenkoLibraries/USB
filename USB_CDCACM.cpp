@@ -192,11 +192,20 @@ size_t CDCACM::write(uint8_t b) {
 
     if (_lineState == 0) return 0;
 
-    while (_txPos >= 64);
+    _manager->sendBuffer(_epBulk, &b, 1);
+    return 1;
+}
 
-    _txBuffer[_txPos++] = b;
-    if (_manager->sendBuffer(_epBulk, _txBuffer, _txPos)) {
-        _txPos = 0;
+size_t CDCACM::write(uint8_t *b, size_t len) {
+
+    if (_lineState == 0) return 0;
+
+    size_t pos = 0;
+    int32_t toSend = min(64, len);
+    while (toSend > 0) {
+        _manager->sendBuffer(_epBulk, &b[pos], toSend);
+        pos += toSend;
+        len -= toSend;
     }
     return 1;
 }
