@@ -11,7 +11,50 @@ extern void dumpPacket(const uint8_t *data, uint32_t l);
 
 USBFS *USBFS::_this;
 
+#ifdef PIN_LED_TX
+static volatile uint32_t gTXLedTimeout = 0;
+# define TXOn() digitalWrite(PIN_LED_TX, HIGH); gTXLedTimeout = millis();
+static void TXLedSwitchOff(int id, void *tptr) {
+    if (gTXLedTimeout > 0) {
+        if (millis() - gTXLedTimeout >= 10) {
+            digitalWrite(PIN_LED_TX, LOW);
+            gTXLedTimeout = 0;
+        }
+    }
+}
+#else
+# define TXOon()
+#endif
+
+#ifdef PIN_LED_RX
+static volatile uint32_t gRXLedTimeout = 0;
+# define RXOn() digitalWrite(PIN_LED_RX, HIGH); gRXLedTimeout = millis();
+static void RXLedSwitchOff(int id, void *tptr) {
+    if (gRXLedTimeout > 0) {
+        if (millis() - gRXLedTimeout >= 10) {
+            digitalWrite(PIN_LED_RX, LOW);
+            gRXLedTimeout = 0;
+        }
+    }
+}
+#else
+# define RXOn()
+#endif
+
+
 bool USBFS::enableUSB() {
+#ifdef PIN_LED_TX
+    pinMode(PIN_LED_TX, OUTPUT);
+    digitalWrite(PIN_LED_TX, LOW);
+    createTask(TXLedSwitchOff, 10, TASK_ENABLE, NULL);
+#endif
+
+#ifdef PIN_LED_RX
+    pinMode(PIN_LED_RX, OUTPUT);
+    digitalWrite(PIN_LED_RX, LOW);
+    createTask(RXLedSwitchOff, 10, TASK_ENABLE, NULL);
+#endif
+
     U1BDTP1 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 8);
     U1BDTP2 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 16);
     U1BDTP3 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 24);
@@ -212,11 +255,13 @@ void USBFS::handleInterrupt() {
 
 		switch (pid) {
 			case 0x01: // OUT
+                RXOn();
                 if (_manager) _manager->onOutPacket(ep, _endpointBuffers[ep].rx[U1STATbits.PPBI], _bufferDescriptorTable[ep][bdt_slot].flags >> 16);
      //           _endpointBuffers[ep].data = _endpointBuffers[ep].data ? 0 : 0x40;
 				_bufferDescriptorTable[ep][bdt_slot].flags = (_endpointBuffers[ep].size << 16) | 0x80 | _endpointBuffers[ep].data; 
 				break;
 			case 0x09: // IN
+                TXOn();
                 if (_endpointBuffers[ep].length > 0) {
                     toSend = min(_endpointBuffers[ep].size, _endpointBuffers[ep].length);
                     enqueuePacket(ep, _endpointBuffers[ep].bufferPtr, toSend);
