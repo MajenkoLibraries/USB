@@ -2,14 +2,6 @@
 
 #define D2H(X) ((X & 0xF) < 10 ? '0' + (X & 0xF) : 'A' - 10 + (X & 0xF))
 
-void dumpPacket(const uint8_t *data, uint32_t l) {
-    for (uint32_t i = 0; i < l; i++) {
-        Serial.print(data[i], HEX);
-        Serial.write(' ');
-    }
-    Serial.println();
-}
-
 USBManager::USBManager(USBDriver *driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser) {
     _driver = driver;
     _driver->setManager(this);
