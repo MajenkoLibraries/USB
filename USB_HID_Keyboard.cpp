@@ -225,7 +225,14 @@ bool HID_Keyboard::getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t
 
 bool HID_Keyboard::getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) {
     if (target == _ifInt) {
-        _manager->sendBuffer(0, keyboardHidReport, min(sizeof(keyboardHidReport), maxlen));
+Serial.println("Get report descriptor");
+        uint32_t ts = millis();
+        while (!_manager->sendBuffer(0, keyboardHidReport, min(sizeof(keyboardHidReport), maxlen))) {
+            if (millis() - ts > USB_TX_TIMEOUT) {
+Serial.println("Timeout");
+                return false;
+            }
+        }
         return true;
     }
     return false;

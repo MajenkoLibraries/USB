@@ -9,6 +9,17 @@ extern void dumpPacket(const uint8_t *data, uint32_t l);
 
 /*-------------- USB FS ---------------*/
 
+static void fatalError() {
+    pinMode(PIN_LED1, OUTPUT);
+    while(1) {
+        digitalWrite(PIN_LED1, HIGH);
+        delay(100);
+        digitalWrite(PIN_LED1, LOW);
+        delay(900);
+    }
+}
+
+
 USBFS *USBFS::_this;
 
 bool USBFS::enableUSB() {
@@ -155,14 +166,27 @@ bool USBFS::enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) {
 
 bool USBFS::sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
 
-    if (_endpointBuffers[ep].buffer != NULL) {
-        // Already sending something ... ?
-        return false;
+    while (_endpointBuffers[ep].buffer != NULL) {
+        if (canEnqueuePacket(ep)) {
+            if (_endpointBuffers[ep].length > 0) {
+                uint32_t toSend = min(_endpointBuffers[ep].size, _endpointBuffers[ep].length);
+                enqueuePacket(ep, _endpointBuffers[ep].bufferPtr, toSend);
+                _endpointBuffers[ep].length -= toSend;
+                _endpointBuffers[ep].bufferPtr += toSend;
+            } else {
+                if (_endpointBuffers[ep].buffer != NULL) {
+                    free(_endpointBuffers[ep].buffer);
+                    _endpointBuffers[ep].buffer = NULL;
+                }
+            }
+
+        }
     }
 
     _endpointBuffers[ep].length = len;
     _endpointBuffers[ep].buffer = (uint8_t *)malloc(len);
     if (!_endpointBuffers[ep].buffer) {
+        fatalError();
         return false;
     }
     memcpy(_endpointBuffers[ep].buffer, data, len);

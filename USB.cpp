@@ -239,10 +239,11 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
 
         case 0x8106: // Get report descriptor
             for (struct USBDeviceList *scan = _devices; scan; scan = scan->next) {
-                if (scan->device->getReportDescriptor(ep, data[4], _target, outLength)) {
+                if (scan->device->getReportDescriptor(ep, _target, data[2], outLength)) {
                     return;
                 }
             }
+            _driver->sendBuffer(0, NULL, 0);
             break;
 
         case 0x0005: // Set Address
@@ -300,4 +301,14 @@ void USBManager::addDevice(USBDevice *d) {
         scan = scan->next;
     }
     scan->next = newDevice;
+}
+
+static void fatalError() {
+    pinMode(PIN_LED1, OUTPUT);
+    while(1) {
+        digitalWrite(PIN_LED1, HIGH);
+        delay(100);
+        digitalWrite(PIN_LED1, LOW);
+        delay(900);
+    }
 }
