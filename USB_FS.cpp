@@ -155,7 +155,9 @@ bool USBFS::enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) {
 
 bool USBFS::sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
 
+    uint32_t ts = millis();
     while (_endpointBuffers[ep].buffer != NULL) {
+        if (millis() - ts > USB_TX_TIMEOUT) return false;
         if (canEnqueuePacket(ep)) {
             if (_endpointBuffers[ep].length > 0) {
                 uint32_t toSend = min(_endpointBuffers[ep].size, _endpointBuffers[ep].length);
