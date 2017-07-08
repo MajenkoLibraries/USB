@@ -169,6 +169,7 @@ class USBManager {
 
         void begin();
         void addDevice(USBDevice *d);
+        void addDevice(USBDevice &d) { addDevice(&d); }
 
         uint8_t allocateInterface();
         uint8_t allocateEndpoint();
