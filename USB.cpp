@@ -303,12 +303,3 @@ void USBManager::addDevice(USBDevice *d) {
     scan->next = newDevice;
 }
 
-static void fatalError() {
-    pinMode(PIN_LED1, OUTPUT);
-    while(1) {
-        digitalWrite(PIN_LED1, HIGH);
-        delay(100);
-        digitalWrite(PIN_LED1, LOW);
-        delay(900);
-    }
-}
