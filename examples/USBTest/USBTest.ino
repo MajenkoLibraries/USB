@@ -1,6 +1,15 @@
 #include <USB.h>
 #include <wchar.h>
 
+/*****************
+ * IMPORTANT
+ *
+ * This example will fail on a board with only a USB interface.
+ * That is because the `Serial` use will conflict with the `uSerial`
+ * use. You will have to remove all references to `Serial` when using
+ * a board such as the Fubarino Mini, chipKIT Lenny, etc.
+ */
+
 USBFS usbDriver;
 USBManager USB(usbDriver, 0x0403, 0xA662);
 CDCACM uSerial;

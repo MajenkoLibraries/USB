@@ -3,7 +3,7 @@
 #define D2H(X) ((X & 0xF) < 10 ? '0' + (X & 0xF) : 'A' - 10 + (X & 0xF))
 
 void dumpPacket(const uint8_t *data, uint32_t l) {
-    for (int i = 0; i < l; i++) {
+    for (uint32_t i = 0; i < l; i++) {
         Serial.print(data[i], HEX);
         Serial.write(' ');
     }
@@ -140,7 +140,6 @@ void USBManager::onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l) {
                     break;
 
                 case 2: { // Configuration Descriptor
-                        struct ConfigurationDescriptor o;
                         uint32_t len = sizeof(struct ConfigurationDescriptor);
                         uint8_t faces = 0;
 

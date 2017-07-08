@@ -130,7 +130,7 @@ bool Audio_MIDI::onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t 
 bool Audio_MIDI::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) {
     if (ep == _epBulk) {
         if (_onMidiMessage != NULL) {
-            for (int i = 0; i < l; i += 4) {
+            for (uint32_t i = 0; i < l; i += 4) {
                 _onMidiMessage(data[i+1], data[i+2], data[i+3]);
             }
         }
@@ -150,11 +150,11 @@ bool Audio_MIDI::sendMessage(uint8_t cable, uint8_t code, uint8_t b0, uint8_t b1
 }
 
 bool Audio_MIDI::noteOn(uint8_t channel, uint8_t note, uint8_t velocity) {
-    sendMessage(0, 0x09, 0x90 | (channel & 0xF), note & 0x7F, velocity);
+    return sendMessage(0, 0x09, 0x90 | (channel & 0xF), note & 0x7F, velocity);
 }
 
 bool Audio_MIDI::noteOff(uint8_t channel, uint8_t note) {
-    sendMessage(0, 0x08, 0x80 | (channel & 0xF), note & 0x7F, 0);
+    return sendMessage(0, 0x08, 0x80 | (channel & 0xF), note & 0x7F, 0);
 }
 
 void Audio_MIDI::onMidiMessage(void (*func)(uint8_t status, uint8_t d0, uint8_t d1)) {

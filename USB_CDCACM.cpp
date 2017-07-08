@@ -176,7 +176,7 @@ bool CDCACM::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) 
     }
 
     if (ep == _epBulk) {
-        for (int i = 0; i < l; i++) {
+        for (uint32_t i = 0; i < l; i++) {
             int bufIndex = (_rxHead + 1) % 64;
             if (bufIndex != _rxTail) {
                 _rxBuffer[_rxHead] = data[i];

@@ -180,7 +180,6 @@ class USBManager {
             return _driver->canEnqueuePacket(ep);
         }
 
-        void begin(uint32_t baud) {}
         void end() {}
 
 };
@@ -249,6 +248,9 @@ class CDCACM : public USBDevice, public Stream {
         int read();
         int peek();
         void flush();
+        void begin() {}
+        void begin(uint32_t baud) {}
+        void end() {}
 };
 
 struct KeyReport {
@@ -335,12 +337,12 @@ struct JoystickReport {
         uint8_t x;
         uint8_t y;
         uint8_t z;
-    } position __attribute__((packed));
+    } position;
     struct {
         uint8_t x;
         uint8_t y;
         uint8_t z;
-    } rotation __attribute__((packed));
+    } rotation;
     uint8_t hat;
     uint16_t buttons;
 } __attribute__((packed));
