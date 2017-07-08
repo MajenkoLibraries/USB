@@ -171,13 +171,14 @@ bool USBFS::sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) {
                         free(_endpointBuffers[ep].buffer);
                         _endpointBuffers[ep].buffer = NULL;
                     }
+                    return false;
                 }
 
             }
         }
     } else {
-        while (_endpointBuffers[ep].buffer != NULL) {
-            if (millis() - ts > USB_TX_TIMEOUT) return false;
+        if (_endpointBuffers[ep].buffer != NULL) {
+            return false;
         }
     }
 
