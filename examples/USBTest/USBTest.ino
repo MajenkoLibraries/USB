@@ -1,55 +1,46 @@
 #include <USB.h>
-#include <wchar.h>
-
-/*****************
- * IMPORTANT
- *
- * This example will fail on a board with only a USB interface.
- * That is because the `Serial` use will conflict with the `uSerial`
- * use. You will have to remove all references to `Serial` when using
- * a board such as the Fubarino Mini, chipKIT Lenny, etc.
- */
 
 USBFS usbDriver;
 USBManager USB(usbDriver, 0x0403, 0xA662);
-CDCACM uSerial;
+CDCACM uSerial1;
+CDCACM uSerial2;
 HID_Keyboard Keyboard;
 HID_Mouse Mouse;
 
 void setup() {
-	Serial.begin(1000000);
-	pinMode(PIN_LED1, OUTPUT);
-    USB.addDevice(&uSerial);
-    USB.addDevice(&Keyboard);
-    USB.addDevice(&Mouse);
+    USB.addDevice(uSerial1);
+    USB.addDevice(uSerial2);
+    USB.addDevice(Keyboard);
+    USB.addDevice(Mouse);
     USB.begin();
-    pinMode(PIN_BTN1, INPUT);
-    pinMode(PIN_BTN2, INPUT);
 }
 
 void loop() {
-    static uint8_t p1 = digitalRead(PIN_BTN1);
-    if (digitalRead(PIN_BTN1) != p1) {
-        p1 = digitalRead(PIN_BTN1);
-        if (p1 == HIGH) {
-            Keyboard.print("Hello");
-        }
+    static uint32_t ts = millis();
+
+    // Print a message periodically on each serial port
+    if (millis() - ts >= 1000) {
+        ts = millis();
+        uSerial1.println("dude");
+        uSerial2.println("sweet");
     }
 
-    static uint8_t p2 = digitalRead(PIN_BTN2);
-    if (digitalRead(PIN_BTN2) != p2) {
-        p2 = digitalRead(PIN_BTN2);
-        if (p2 == HIGH) {
-            Mouse.click(MOUSE_LEFT);
-        }
+    // Type anything sent through uSerial1 on the keyboard
+    // CAUTION: This can cause feedback!
+    if (uSerial1.available()) {
+        Keyboard.print(uSerial1.read());
     }
 
-    
-    if (Serial.available()) {
-        uSerial.write(Serial.read());
+    // Control the mouse on uSerial2 - WASD to move and Q/E to click
+    if (uSerial2.available()) {
+        char c = uSerial2.read();
+        switch (c) {
+            case 'w': Mouse.move(0, -4, 0); break;  // Up
+            case 's': Mouse.move(0, 4, 0); break;   // Down
+            case 'a': Mouse.move(-4, 0, 0); break;  // Left
+            case 'd': Mouse.move(4, 0, 0); break;   // Right
+            case 'q': Mouse.click(MOUSE_LEFT); break;   // Left click
+            case 'e': Mouse.click(MOUSE_RIGHT); break;  // Right click
+        }
     }
-    if (uSerial.available()) {
-        Serial.write(uSerial.read());
-    }
-    
 }
