@@ -495,6 +495,9 @@ class HID_Raw : public USBDevice {
 
         void begin(void) {};
         void end(void) {};
+
+        uint8_t getFeature(uint8_t f) { return _features[f]; }
+        void setFeature(uint8_t f, uint8_t v) { _features[f] = v; }
 };
 
 class Audio_MIDI : public USBDevice {
