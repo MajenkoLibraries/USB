@@ -69,7 +69,7 @@ bool USBFS::enableUSB() {
 	U1EIE = 0xFF;
 
 	setIntVector(_USB_1_VECTOR, _usbInterrupt);
-	setIntPriority(_USB_1_VECTOR, 5, 0);
+	setIntPriority(_USB_1_VECTOR, 6, 0);
 	clearIntFlag(_USB_IRQ);
 	setIntEnable(_USB_IRQ);
 

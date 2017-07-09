@@ -129,6 +129,9 @@ bool CDCACM::onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l
                 return true;
             case 0x2122:
                 _lineState = data[2];
+                if ((_lineState == 0) && (_baud == 1200)) {
+                    executeSoftReset(ENTER_BOOTLOADER_ON_BOOT);
+                }
                 _manager->sendBuffer(0, NULL, 0);
                 return true;
             case 0xA121: {
@@ -165,6 +168,9 @@ bool CDCACM::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) 
             switch(_outAction) {
                 case CDC_ACT_SET_LINE_CODING:
                     struct CDCLineCoding *coding = (struct CDCLineCoding *)data;
+                    if ((coding->dwDTERate == 0) && (_baud == 1200)) {
+                        executeSoftReset(ENTER_BOOTLOADER_ON_BOOT);
+                    }
                     _baud = coding->dwDTERate;
                     _stopBits = coding->bCharFormat;
                     _parity = coding->bParityType;
