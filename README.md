@@ -83,6 +83,57 @@ Keyboard.release(key);
 Keyboard.releaseAll();
 ```
 
+* HID\_Media:
+
+Media keys are split into two types: "System" and "Consumer". System ones control the
+system - things like power down, etc. Consumer are for media player control - volume,
+track skip, play, pause, etc.
+
+```C++
+Media.pressSystem(key);
+Media.releaseSystem(key);
+Media.pressConsumer(key);
+Media.releaseConsumer(key);
+Media.releaseAllSystem();
+Media.releaseAllConsumer();
+Media.releaseAll();
+```
+
+System key definitions:
+
+```C++
+#define SYSTEM_POWERDOWN            0x0001
+#define SYSTEM_SLEEP                0x0002
+#define SYSTEM_WAKEUP               0x0004
+#define SYSTEM_CONTEXT_MENU         0x0008
+#define SYSTEM_MAIN_MENU            0x0010
+#define SYSTEM_APP_MENU             0x0020
+#define SYSTEM_HELP_MENU            0x0040
+#define SYSTEM_MENU_EXIT            0x0080
+#define SYSTEM_MENU_SELECT          0x0100
+#define SYSTEM_MENU_RIGHT           0x0200
+#define SYSTEM_MENU_LEFT            0x0400
+#define SYSTEM_MENU_UP              0x0800
+#define SYSTEM_MENU_DOWN            0x1000
+```
+
+Consumer key definitions:
+
+```C++
+#define CONSUMER_PLAY               0x0001
+#define CONSUMER_PAUSE              0x0002
+#define CONSUMER_RECORD             0x0004
+#define CONSUMER_FASTFORWARD        0x0008
+#define CONSUMER_REWIND             0x0010
+#define CONSUMER_NEXTTRACK          0x0020
+#define CONSUMER_PREVTRACK          0x0040
+#define CONSUMER_STOP               0x0080
+#define CONSUMER_EJECT              0x0100
+#define CONSUMER_MUTE               0x0200
+#define CONSUMER_VOLUME_UP          0x0400
+#define CONSUMER_VOLUME_DOWN        0x0800
+```
+
 * HID\_Mouse:
 
 Adheres to the Arduino Mouse API:

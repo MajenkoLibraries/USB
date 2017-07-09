@@ -299,6 +299,71 @@ class HID_Keyboard : public USBDevice, public Print {
         void end(void) {};
 };
 
+#define SYSTEM_POWERDOWN            0x0001
+#define SYSTEM_SLEEP                0x0002
+#define SYSTEM_WAKEUP               0x0004
+#define SYSTEM_CONTEXT_MENU         0x0008
+#define SYSTEM_MAIN_MENU            0x0010
+#define SYSTEM_APP_MENU             0x0020
+#define SYSTEM_HELP_MENU            0x0040
+#define SYSTEM_MENU_EXIT            0x0080
+#define SYSTEM_MENU_SELECT          0x0100
+#define SYSTEM_MENU_RIGHT           0x0200
+#define SYSTEM_MENU_LEFT            0x0400
+#define SYSTEM_MENU_UP              0x0800
+#define SYSTEM_MENU_DOWN            0x1000
+
+#define CONSUMER_PLAY               0x0001
+#define CONSUMER_PAUSE              0x0002
+#define CONSUMER_RECORD             0x0004
+#define CONSUMER_FASTFORWARD        0x0008
+#define CONSUMER_REWIND             0x0010
+#define CONSUMER_NEXTTRACK          0x0020
+#define CONSUMER_PREVTRACK          0x0040
+#define CONSUMER_STOP               0x0080
+#define CONSUMER_EJECT              0x0100
+#define CONSUMER_MUTE               0x0200
+#define CONSUMER_VOLUME_UP          0x0400
+#define CONSUMER_VOLUME_DOWN        0x0800
+
+class HID_Media : public USBDevice {
+    private:
+        USBManager *_manager;
+        uint8_t _ifInt;
+        uint8_t _epInt;
+        void sendReport(uint8_t id, uint16_t data);
+        uint8_t _intA[8];
+        uint8_t _intB[8];
+
+        uint16_t _systemKeys;
+        uint16_t _consumerKeys;
+
+    public:
+        uint16_t getDescriptorLength();
+        uint8_t getInterfaceCount();
+        uint32_t populateConfigurationDescriptor(uint8_t *buf);
+        void initDevice(USBManager *manager);
+        bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        void configureEndpoints();
+
+        bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onInPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        bool onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
+        size_t write(uint8_t);
+
+        size_t pressSystem(uint16_t key);
+        size_t releaseSystem(uint16_t key);
+        size_t pressConsumer(uint16_t key);
+        size_t releaseConsumer(uint16_t key);
+        void releaseAllSystem();
+        void releaseAllConsumer();
+        void releaseAll();
+
+        void begin(void) {};
+        void end(void) {};
+};
+
 #define MOUSE_LEFT 1
 #define MOUSE_RIGHT 2
 #define MOUSE_MIDDLE 4
