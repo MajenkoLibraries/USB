@@ -313,18 +313,25 @@ class HID_Keyboard : public USBDevice, public Print {
 #define SYSTEM_MENU_UP              0x0800
 #define SYSTEM_MENU_DOWN            0x1000
 
-#define CONSUMER_PLAY               0x0001
-#define CONSUMER_PAUSE              0x0002
-#define CONSUMER_RECORD             0x0004
-#define CONSUMER_FASTFORWARD        0x0008
-#define CONSUMER_REWIND             0x0010
-#define CONSUMER_NEXTTRACK          0x0020
-#define CONSUMER_PREVTRACK          0x0040
-#define CONSUMER_STOP               0x0080
-#define CONSUMER_EJECT              0x0100
-#define CONSUMER_MUTE               0x0200
-#define CONSUMER_VOLUME_UP          0x0400
-#define CONSUMER_VOLUME_DOWN        0x0800
+#define CONSUMER_PLAY               0x000001
+#define CONSUMER_PAUSE              0x000002
+#define CONSUMER_RECORD             0x000004
+#define CONSUMER_FASTFORWARD        0x000008
+#define CONSUMER_REWIND             0x000010
+#define CONSUMER_NEXTTRACK          0x000020
+#define CONSUMER_PREVTRACK          0x000040
+#define CONSUMER_STOP               0x000080
+#define CONSUMER_EJECT              0x000100
+#define CONSUMER_MUTE               0x000200
+#define CONSUMER_VOLUME_UP          0x000400
+#define CONSUMER_VOLUME_DOWN        0x000800
+#define CONSUMER_MENU_ESCAPE        0x001000
+#define CONSUMER_MENU_RIGHT         0x002000
+#define CONSUMER_MENU_LEFT          0x004000
+#define CONSUMER_MENU_DOWN          0x008000
+#define CONSUMER_MENU_UP            0x010000
+#define CONSUMER_MENU_PICK          0x020000
+#define CONSUMER_MENU               0x040000
 
 class HID_Media : public USBDevice {
     private:
@@ -332,11 +339,12 @@ class HID_Media : public USBDevice {
         uint8_t _ifInt;
         uint8_t _epInt;
         void sendReport(uint8_t id, uint16_t data);
+        void sendReport(uint8_t id, uint32_t data);
         uint8_t _intA[8];
         uint8_t _intB[8];
 
         uint16_t _systemKeys;
-        uint16_t _consumerKeys;
+        uint32_t _consumerKeys;
 
     public:
         uint16_t getDescriptorLength();
@@ -354,8 +362,8 @@ class HID_Media : public USBDevice {
 
         size_t pressSystem(uint16_t key);
         size_t releaseSystem(uint16_t key);
-        size_t pressConsumer(uint16_t key);
-        size_t releaseConsumer(uint16_t key);
+        size_t pressConsumer(uint32_t key);
+        size_t releaseConsumer(uint32_t key);
         void releaseAllSystem();
         void releaseAllConsumer();
         void releaseAll();

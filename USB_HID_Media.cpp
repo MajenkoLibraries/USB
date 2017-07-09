@@ -53,9 +53,16 @@ static const uint8_t mediaHidReport[] = {
     0x09, 0xe2,                    //   USAGE (Mute)
     0x09, 0xe9,                    //   USAGE (Volume Up)
     0x09, 0xea,                    //   USAGE (Volume Down)
-    0x95, 0x0c,                    //   REPORT_COUNT (12)
+    0x09, 0x46,                    //   USAGE (Menu Escape)
+    0x09, 0x45,                    //   USAGE (Menu Right)
+    0x09, 0x44,                    //   USAGE (Menu Left)
+    0x09, 0x43,                    //   USAGE (Menu Down)
+    0x09, 0x42,                    //   USAGE (Menu Up)
+    0x09, 0x41,                    //   USAGE (Menu  Pick)
+    0x09, 0x40,                    //   USAGE (Menu)
+    0x95, 0x13,                    //   REPORT_COUNT (19)
     0x81, 0x02,                    //   INPUT (Data,Var,Abs)
-    0x95, 0x04,                    //   REPORT_COUNT (4)
+    0x95, 0x0d,                    //   REPORT_COUNT (13)
     0x81, 0x01,                    //   INPUT (Cnst,Ary,Abs)
     0xc0                           // END_COLLECTION
 };
@@ -136,8 +143,8 @@ bool HID_Media::onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_
                     uint8_t buf[3] = {1, 0, 0};
                     _manager->sendBuffer(0, buf, 3);
                 } else if (data[2] == 2) {
-                    uint8_t buf[3] = {2, 0, 0};
-                    _manager->sendBuffer(0, buf, 3);
+                    uint8_t buf[5] = {2, 0, 0, 0, 0};
+                    _manager->sendBuffer(0, buf, 5);
                 }
                 return true;
             }
@@ -175,31 +182,40 @@ void HID_Media::sendReport(uint8_t id, uint16_t data) {
     }
 }
 
+void HID_Media::sendReport(uint8_t id, uint32_t data) {
+    uint8_t buf[5];
+    buf[0] = id;
+    buf[1] = data & 0xFF;
+    buf[2] = data >> 8;
+    buf[3] = data >> 16;
+    buf[4] = data >> 24;
+    uint32_t ts = millis();
+    while(!_manager->sendBuffer(_epInt, buf, 5)) {
+        if (millis() - ts > USB_TX_TIMEOUT) return;
+    }
+}
+
 size_t HID_Media::pressSystem(uint16_t k) {
     _systemKeys |= k;
-    _systemKeys &= 0x1FFF;
     sendReport(1, _systemKeys);
     return 1;
 }
 
 size_t HID_Media::releaseSystem(uint16_t k) {
     _systemKeys &= ~k;
-    _systemKeys &= 0x1FFF;
     sendReport(1, _systemKeys);
     return 1;
 }
 
-size_t HID_Media::pressConsumer(uint16_t k) {
+size_t HID_Media::pressConsumer(uint32_t k) {
     _consumerKeys |= k;
-    _consumerKeys &= 0x3FFF;
     sendReport(2, _consumerKeys);
     return 1;
 }
 
-size_t HID_Media::releaseConsumer(uint16_t k) {
+size_t HID_Media::releaseConsumer(uint32_t k) {
     _consumerKeys &= ~k;
-    _consumerKeys &= 0x3FFF;
-    sendReport(2, _systemKeys);
+    sendReport(2, _consumerKeys);
     return 1;
 }
 
