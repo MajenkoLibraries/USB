@@ -15,8 +15,8 @@ USBFS usbDriver;
 USBManager USB(usbDriver, 0xDEAD, 0xBEEF); // Provide the VID and PID here
 ```
 
-You can also provide manufacturer, product and serial number (must be all three
-at the moment):
+You can also provide manufacturer, product and serial number (serial number is
+optional and if omitted will be generated from chip information):
 
 ```C++
 USBManager USB(usbDriver, 0xDEAD, 0xBEEF, "My Company", "My Board", "12345ABCXYZ"); 

@@ -157,13 +157,15 @@ class USBManager {
         const char *_serial;
         char _defSerial[14];
 
+        void populateDefaultSerial();
+
 	public:
         void onSetupPacket(uint8_t ep, uint8_t *data, uint32_t l);
         void onInPacket(uint8_t ep, uint8_t *data, uint32_t l);
         void onOutPacket(uint8_t ep, uint8_t *data, uint32_t l);
 
-		USBManager(USBDriver *driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser);
-		USBManager(USBDriver &driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser);
+		USBManager(USBDriver *driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser = NULL);
+		USBManager(USBDriver &driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser = NULL);
 		USBManager(USBDriver *driver, uint16_t vid, uint16_t pid);
 		USBManager(USBDriver &driver, uint16_t vid, uint16_t pid);
 
@@ -194,6 +196,7 @@ class USBDevice {
     public:
         virtual uint16_t getDescriptorLength() = 0; // Returns the length of the config descriptor block
         virtual uint8_t getInterfaceCount() = 0;    // Returns the number of interfaces for this device
+        virtual bool getStringDescriptor(uint8_t idx, uint16_t maxlen) = 0; // Send a string descriptor matching this index
         virtual uint32_t populateConfigurationDescriptor(uint8_t *buf) = 0; // Fills *buf with the config descriptor data. Returns the number of bytes used
         virtual void initDevice(USBManager *manager) = 0;   // Initialize a device and set the manager object
         
@@ -243,6 +246,7 @@ class CDCACM : public USBDevice, public Stream {
         void initDevice(USBManager *manager);
         bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
         bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen) { return false; }
+        bool getStringDescriptor(uint8_t idx, uint16_t maxlen) { return false; }
         void configureEndpoints();
 
         bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
@@ -284,6 +288,7 @@ class HID_Keyboard : public USBDevice, public Print {
         void initDevice(USBManager *manager);
         bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
         bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getStringDescriptor(uint8_t idx, uint16_t maxlen) { return false; }
         void configureEndpoints();
 
         bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
@@ -353,6 +358,7 @@ class HID_Media : public USBDevice {
         void initDevice(USBManager *manager);
         bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
         bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getStringDescriptor(uint8_t idx, uint16_t maxlen) { return false; }
         void configureEndpoints();
 
         bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
@@ -396,6 +402,7 @@ class HID_Mouse : public USBDevice {
         void initDevice(USBManager *manager);
         bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
         bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getStringDescriptor(uint8_t idx, uint16_t maxlen) { return false; }
         void configureEndpoints();
 
         bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
@@ -445,6 +452,7 @@ class HID_Joystick : public USBDevice {
         void initDevice(USBManager *manager);
         bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
         bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getStringDescriptor(uint8_t idx, uint16_t maxlen) { return false; }
         void configureEndpoints();
 
         bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
@@ -487,6 +495,7 @@ class HID_Raw : public USBDevice {
         void initDevice(USBManager *manager);
         bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
         bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getStringDescriptor(uint8_t idx, uint16_t maxlen) { return false; }
         void configureEndpoints();
 
         bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);
@@ -519,6 +528,7 @@ class Audio_MIDI : public USBDevice {
         void initDevice(USBManager *manager);
         bool getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
         bool getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxlen);
+        bool getStringDescriptor(uint8_t idx, uint16_t maxlen) { return false; }
         void configureEndpoints();
 
         bool onSetupPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l);

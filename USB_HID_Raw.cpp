@@ -33,7 +33,7 @@ uint32_t HID_Raw::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] =                      0x03;
     buf[i++] =                      0x00;
     buf[i++] =                      0;
-    buf[i++] =                      0;
+    buf[i++] =                      0; // iInterface
 
     /* HID Class-Specific Descriptor */
 

@@ -28,7 +28,7 @@ uint32_t CDCACM::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] =     0x02;                                   // bFunctionClass
     buf[i++] =     0x02;                                   // bFunctionSubClass
     buf[i++] =     0x01;                                   // bFunctionProtocol
-    buf[i++] =     4;                                      // iFunction
+    buf[i++] =     0; // iFunction
 
 
     buf[i++] = 9;          // length
@@ -39,7 +39,7 @@ uint32_t CDCACM::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] = 0x02;       // interface class (comm)
     buf[i++] = 0x02;       // subclass (acm)
     buf[i++] = 0x01;       // protocol (at)
-    buf[i++] = 0x00;       // interface (string)
+    buf[i++] = 0;           // iInterface
 
     buf[i++] = 5;          // length
     buf[i++] = 0x24;       // header functional descriptor
@@ -80,7 +80,7 @@ uint32_t CDCACM::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] = 0x0a;       // interface class (data)
     buf[i++] = 0x00;       // subclass
     buf[i++] = 0x00;       // protocol
-    buf[i++] = 0x00;       // interface (string)
+    buf[i++] = 0;           // iInterface
 
     buf[i++] = 7;          // length
     buf[i++] = 0x05;       // endpoint descriptor
