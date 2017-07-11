@@ -178,6 +178,7 @@ class USBHS : public USBDriver {
 			_this->handleInterrupt();
 		}
 		static USBHS *_this;
+        uint32_t _fifoOffset;
 		uint32_t _enabledEndpoints;
 		struct epBuffer _endpointBuffers[16];
 
@@ -185,7 +186,6 @@ class USBHS : public USBDriver {
         uint8_t _ctlRxB[64];
         uint8_t _ctlTxA[64];
         uint8_t _ctlTxB[64];
-        uint32_t _fifoOffset;
 
         volatile bool _inIsr;
 

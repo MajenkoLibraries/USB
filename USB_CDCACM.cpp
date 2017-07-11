@@ -228,7 +228,7 @@ bool CDCACM::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) 
 
     if (ep == _epBulk) {
         for (uint32_t i = 0; i < l; i++) {
-            int bufIndex = (_rxHead + 1) % CDCACM_BUFFER_SIZE;
+            uint32_t bufIndex = (_rxHead + 1) % CDCACM_BUFFER_SIZE;
             if (bufIndex != _rxTail) {
                 _rxBuffer[_rxHead] = data[i];
                 _rxHead = bufIndex;
@@ -254,7 +254,7 @@ size_t CDCACM::write(const uint8_t *b, size_t len) {
     size_t pos = 0;
     int32_t slen = len;
     uint32_t packetSize = _manager->isHighSpeed() ? 512 : 64;
-    int32_t toSend = min(packetSize, slen);
+    int32_t toSend = min((int32_t)packetSize, slen);
     while (pos < len) {
         _manager->sendBuffer(_epBulk, &b[pos], toSend);
         pos += toSend;

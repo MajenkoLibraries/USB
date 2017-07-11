@@ -86,19 +86,24 @@ bool USBFS::enableUSB() {
     createTask(RXLedSwitchOff, 10, TASK_ENABLE, NULL);
 #endif
 
+    clearIntFlag(_USB_VECTOR);
+    setIntVector(_USB_VECTOR, _usbInterrupt);
+    setIntPriority(_USB_VECTOR, 6, 0);
+    setIntEnable(_USB_VECTOR);
+
     USBCSR0bits.SOFTCONN = 1;        // D+/D- active
     USBCSR0bits.HSEN = 0;           // Full speed negotiation
     USBCSR0bits.FUNC = 0;           // Address 0
 
     USBCSR2bits.RESETIE = 1;
 
-    clearIntFlag(_USB_VECTOR);
-    setIntVector(_USB_VECTOR, _usbInterrupt);
-    setIntPriority(_USB_VECTOR, 6, 0);
-    setIntEnable(_USB_VECTOR);
+#if defined(USBCRCON)
+    USBCRCONbits.USBIE = 1;
+#endif
 
     addEndpoint(0, EP_IN, EP_CTL, 64, _ctlRxA, _ctlRxB);
     addEndpoint(0, EP_OUT, EP_CTL, 64, _ctlTxA, _ctlTxB);
+
 	return true;
 }
 
@@ -115,19 +120,28 @@ bool USBHS::enableUSB() {
     createTask(RXLedSwitchOff, 10, TASK_ENABLE, NULL);
 #endif
 
+    setIntVector(_USB_VECTOR, _usbInterrupt);
+    setIntPriority(_USB_VECTOR, 6, 0);
+    clearIntFlag(_USB_VECTOR);
+    setIntEnable(_USB_VECTOR);
+
+    IFS4bits.USBIF = 0;
+    IEC4bits.USBIE = 1;
+
+
     USBCSR0bits.SOFTCONN = 1;        // D+/D- active
     USBCSR0bits.HSEN = 1;           // High speed negotiation
     USBCSR0bits.FUNC = 0;           // Address 0
 
     USBCSR2bits.RESETIE = 1;
 
-    clearIntFlag(_USB_VECTOR);
-    setIntVector(_USB_VECTOR, _usbInterrupt);
-    setIntPriority(_USB_VECTOR, 6, 0);
-    setIntEnable(_USB_VECTOR);
+#if defined(USBCRCON)
+    USBCRCONbits.USBIE = 1;
+#endif
 
     addEndpoint(0, EP_IN, EP_CTL, 64, _ctlRxA, _ctlRxB);
     addEndpoint(0, EP_OUT, EP_CTL, 64, _ctlTxA, _ctlTxB);
+
 	return true;
 }
 
@@ -241,7 +255,7 @@ bool USBHS::enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) {
     }
     if (fifo == NULL) return false;
 
-    for (int i = 0; i < len; i++) {
+    for (uint32_t i = 0; i < len; i++) {
         *fifo = data[i];
     }
 
@@ -303,26 +317,27 @@ void USBHS::handleInterrupt() {
     bool isEP6RXIF = (csr1 & (1 << 6)) ? true : false;
     bool isEP7RXIF = (csr1 & (1 << 7)) ? true : false;
     uint32_t csr2 = USBCSR2;
-    bool isRESUMEIF = (csr2 & (1 << 17)) ? true : false;
+    bool __attribute__((unused)) isRESUMEIF = (csr2 & (1 << 17)) ? true : false;
     bool isRESETIF = (csr2 & (1 << 18)) ? true : false;
-    bool isSOFIF = (csr2 & (1 << 19)) ? true : false;
-    bool isCONNIF = (csr2 & (1 << 20)) ? true : false;
-    bool isDISCONIF = (csr2 & (1 << 21)) ? true : false;
-    bool isSESSRQIF = (csr2 & (1 << 22)) ? true : false;
-    bool isVBUSERRIF = (csr2 & (1 << 23)) ? true : false;
+    bool __attribute__((unused)) isSOFIF = (csr2 & (1 << 19)) ? true : false;
+    bool __attribute__((unused)) isCONNIF = (csr2 & (1 << 20)) ? true : false;
+    bool __attribute__((unused)) isDISCONIF = (csr2 & (1 << 21)) ? true : false;
+    bool __attribute__((unused)) isSESSRQIF = (csr2 & (1 << 22)) ? true : false;
+    bool __attribute__((unused)) isVBUSERRIF = (csr2 & (1 << 23)) ? true : false;
 
     if (isRESETIF) {
         addEndpoint(0, EP_IN, EP_CTL, 64, _ctlRxA, _ctlRxB);
         addEndpoint(0, EP_OUT, EP_CTL, 64, _ctlTxA, _ctlTxB);
     }
 
+    volatile uint8_t *fifo;
     if (isEP0IF) {
         if (USBE0CSR0bits.RXRDY) {
 
-            volatile uint8_t *fifo = (uint8_t *)&USBFIFO0;
             uint32_t pktlen = USBE0CSR2bits.RXCNT;
 
-            for (int i = 0; i < pktlen; i++) {
+            fifo = (uint8_t *)&USBFIFO0;
+            for (uint32_t i = 0; i < pktlen; i++) {
                 _endpointBuffers[0].rx[0][i] = *(fifo + (i & 3));
             }
 
@@ -340,12 +355,13 @@ void USBHS::handleInterrupt() {
         USBCSR3bits.ENDPOINT = 1;
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
-        uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (int i = 0; i < WFB(pktlen); i++) {
-            buf[i] = USBFIFO1;
+
+        fifo = (uint8_t *)&USBFIFO1;
+        for (uint32_t i = 0; i < pktlen; i++) {
+            _endpointBuffers[1].rx[0][i] = *(fifo + (i & 3));
         }
+
         USBIENCSR1bits.RXPKTRDY = 0;
-        memcpy(_endpointBuffers[1].rx[0], buf, pktlen);
         if (_manager) _manager->onOutPacket(1, _endpointBuffers[1].rx[0], pktlen);
 
         USBCSR3bits.ENDPOINT = oep;
@@ -356,12 +372,13 @@ void USBHS::handleInterrupt() {
         USBCSR3bits.ENDPOINT = 2;
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
-        uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (int i = 0; i < WFB(pktlen); i++) {
-            buf[i] = USBFIFO2;
+
+        fifo = (uint8_t *)&USBFIFO2;
+        for (uint32_t i = 0; i < pktlen; i++) {
+            _endpointBuffers[2].rx[0][i] = *(fifo + (i & 3));
         }
+
         USBIENCSR1bits.RXPKTRDY = 0;
-        memcpy(_endpointBuffers[2].rx[0], buf, pktlen);
         if (_manager) _manager->onOutPacket(2, _endpointBuffers[2].rx[0], pktlen);
 
         USBCSR3bits.ENDPOINT = oep;
@@ -373,7 +390,7 @@ void USBHS::handleInterrupt() {
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
         uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (int i = 0; i < WFB(pktlen); i++) {
+        for (uint32_t i = 0; i < WFB(pktlen); i++) {
             buf[i] = USBFIFO3;
         }
         USBIENCSR1bits.RXPKTRDY = 0;
@@ -389,7 +406,7 @@ void USBHS::handleInterrupt() {
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
         uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (int i = 0; i < WFB(pktlen); i++) {
+        for (uint32_t i = 0; i < WFB(pktlen); i++) {
             buf[i] = USBFIFO4;
         }
         USBIENCSR1bits.RXPKTRDY = 0;
@@ -405,7 +422,7 @@ void USBHS::handleInterrupt() {
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
         uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (int i = 0; i < WFB(pktlen); i++) {
+        for (uint32_t i = 0; i < WFB(pktlen); i++) {
             buf[i] = USBFIFO5;
         }
         USBIENCSR1bits.RXPKTRDY = 0;
@@ -421,7 +438,7 @@ void USBHS::handleInterrupt() {
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
         uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (int i = 0; i < WFB(pktlen); i++) {
+        for (uint32_t i = 0; i < WFB(pktlen); i++) {
             buf[i] = USBFIFO6;
         }
         USBIENCSR1bits.RXPKTRDY = 0;
@@ -437,7 +454,7 @@ void USBHS::handleInterrupt() {
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
         uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (int i = 0; i < WFB(pktlen); i++) {
+        for (uint32_t i = 0; i < WFB(pktlen); i++) {
             buf[i] = USBFIFO7;
         }
         USBIENCSR1bits.RXPKTRDY = 0;
