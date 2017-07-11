@@ -1,7 +1,12 @@
 Replacement USB stack for chipKIT
 --------------------------------
 
-* This is ***WORK IN PROGRESS***
+This is a replacement for the internal chipKIT USB stack. It supports
+both the PIC32MX and the PIC32MZ (the latter in both HS and FS mode).
+
+The design is completely modular with a central USBManager object which
+manages the enumeration and communication between USB devices and a
+USB hardware interface.
 
 Usage
 -----
