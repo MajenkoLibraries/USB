@@ -20,7 +20,7 @@ struct epBuffer {
 	uint8_t *tx[2];
 	uint8_t data;
 	uint8_t txAB;
-    uint8_t size;
+    uint32_t size;
     uint32_t length;
     uint8_t *buffer;
     uint8_t *bufferPtr;
@@ -78,7 +78,7 @@ struct StringDescriptorHeader {
 #define EP_CTL 0
 #define EP_INT 1
 #define EP_BLK 2
-#define EP_ISP 3
+#define EP_ISO 3
 
 class USBManager;
 class USBDevice;
@@ -88,7 +88,7 @@ class USBDriver {
 		USBDriver() {}
 		virtual bool enableUSB() = 0;       // Turn on and configure USB
 		virtual bool disableUSB() = 0;      // Turn off USB
-		virtual bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b) = 0;    // Add an endpoint
+		virtual bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t size, uint8_t *a, uint8_t *b) = 0;    // Add an endpoint
 		virtual bool enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len) = 0;  // Queue a single packet on an endpoint
         virtual bool canEnqueuePacket(uint8_t ep) = 0;  // True if a packet can be enqueued
         virtual bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len) = 0; // Send an entire buffer through and endpoint
@@ -97,9 +97,11 @@ class USBDriver {
             _manager = mgr;
         }
 
+        virtual bool isHighSpeed() = 0;
+
         USBManager *_manager;
 };
-
+#ifdef __PIC32MX__
 class USBFS : public USBDriver {
 	private:
 		static __USER_ISR void _usbInterrupt() {
@@ -120,11 +122,13 @@ class USBFS : public USBDriver {
 		USBFS() : _enabledEndpoints(0), _inIsr(false) { _this = this; }
 		bool enableUSB();
 		bool disableUSB();
-		bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b);
+		bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t size, uint8_t *a, uint8_t *b);
 		bool enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len);
 		bool setAddress(uint8_t address);
         bool canEnqueuePacket(uint8_t ep);
         bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len);
+
+        bool isHighSpeed() { return false; }
 
 
 		void handleInterrupt();
@@ -134,6 +138,53 @@ class USBFS : public USBDriver {
         using USBDriver::_manager;
 
 };
+#endif
+
+#ifdef __PIC32MZ__
+class USBFS;
+class USBHS : public USBDriver {
+	protected:
+		static __USER_ISR void _usbInterrupt() {
+			_this->handleInterrupt();
+		}
+		static USBHS *_this;
+		uint32_t _enabledEndpoints;
+		struct epBuffer _endpointBuffers[16];
+
+        uint8_t _ctlRxA[64];
+        uint8_t _ctlRxB[64];
+        uint8_t _ctlTxA[64];
+        uint8_t _ctlTxB[64];
+        uint32_t _fifoOffset;
+
+        volatile bool _inIsr;
+
+	public:
+		USBHS() : _fifoOffset(8), _enabledEndpoints(0), _inIsr(false) { _this = this; }
+		virtual bool enableUSB();
+        virtual bool isHighSpeed() { return true; }
+		bool disableUSB();
+		bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t size, uint8_t *a, uint8_t *b);
+		bool enqueuePacket(uint8_t ep, const uint8_t *data, uint32_t len);
+		bool setAddress(uint8_t address);
+        bool canEnqueuePacket(uint8_t ep);
+        bool sendBuffer(uint8_t ep, const uint8_t *data, uint32_t len);
+
+
+		void handleInterrupt();
+
+        using USBDriver::_manager;
+
+        friend USBFS;
+
+};
+
+class USBFS : public USBHS {
+    public:
+        bool enableUSB();
+        bool isHighSpeed() { return false; }
+};
+#endif
 
 struct USBDeviceList {
     USBDevice *device;
@@ -164,6 +215,8 @@ class USBManager {
         void onInPacket(uint8_t ep, uint8_t *data, uint32_t l);
         void onOutPacket(uint8_t ep, uint8_t *data, uint32_t l);
 
+        bool isHighSpeed() { return _driver->isHighSpeed(); }
+
 		USBManager(USBDriver *driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser = NULL);
 		USBManager(USBDriver &driver, uint16_t vid, uint16_t pid, const char *mfg, const char *prod, const char *ser = NULL);
 		USBManager(USBDriver *driver, uint16_t vid, uint16_t pid);
@@ -176,7 +229,7 @@ class USBManager {
         uint8_t allocateInterface();
         uint8_t allocateEndpoint();
 
-        bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b) {
+        bool addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t size, uint8_t *a, uint8_t *b) {
             return _driver->addEndpoint(id, direction, type, size, a, b);
         }
 
@@ -223,18 +276,29 @@ class CDCACM : public USBDevice, public Stream {
         uint8_t _stopBits;
         uint8_t _dataBits;
         uint8_t _parity;
+#if defined (__PIC32MX__)
         uint8_t _txBuffer[64];
-        volatile uint8_t _txPos;
         uint8_t _rxBuffer[64];
-        volatile uint8_t _rxHead;
-        volatile uint8_t _rxTail;
-
-        uint8_t _ctlA[8];
-        uint8_t _ctlB[8];
         uint8_t _bulkRxA[64];
         uint8_t _bulkRxB[64];
         uint8_t _bulkTxA[64];
         uint8_t _bulkTxB[64];
+#define CDCACM_BUFFER_SIZE 64
+#elif defined(__PIC32MZ__)
+        uint8_t _txBuffer[512];
+        uint8_t _rxBuffer[512];
+        uint8_t _bulkRxA[512];
+        uint8_t _bulkRxB[512];
+        uint8_t _bulkTxA[512];
+        uint8_t _bulkTxB[512];
+#define CDCACM_BUFFER_SIZE 512
+#endif
+        volatile uint32_t _txPos;
+        volatile uint32_t _rxHead;
+        volatile uint32_t _rxTail;
+
+        uint8_t _ctlA[8];
+        uint8_t _ctlB[8];
 
     public:
         CDCACM() : _txPos(0), _rxHead(0), _rxTail(0) {}
@@ -514,10 +578,18 @@ class Audio_MIDI : public USBDevice {
         USBManager *_manager;
         uint8_t _ifBulk;
         uint8_t _epBulk;
+
+#if defined (__PIC32MX__)
         uint8_t _bulkRxA[64];
         uint8_t _bulkRxB[64];
         uint8_t _bulkTxA[64];
         uint8_t _bulkTxB[64];
+#elif defined(__PIC32MZ__)
+        uint8_t _bulkRxA[512];
+        uint8_t _bulkRxB[512];
+        uint8_t _bulkTxA[512];
+        uint8_t _bulkTxB[512];
+#endif
 
         void (*_onMidiMessage)(uint8_t status, uint8_t d0, uint8_t d1);
 

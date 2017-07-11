@@ -1,6 +1,9 @@
 #include <USB.h>
 
 USBFS usbDriver;
+// Change to this instead for High Speed mode on MZ chips:
+// USBHS usbDriver;
+
 USBManager USB(usbDriver, 0x0403, 0xA662);
 CDCACM uSerial1;
 CDCACM uSerial2;

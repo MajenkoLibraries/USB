@@ -1,7 +1,6 @@
+#ifdef __PIC32MX__
+
 #include <USB.h>
-
-extern void dumpPacket(const uint8_t *data, uint32_t l);
-
 
 #define KVA_TO_PA(v)  ((v) & 0x1fffffff)
 #define PA_TO_KVA0(pa)  ((pa) | 0x80000000)  // cachable
@@ -88,7 +87,7 @@ bool USBFS::disableUSB() {
 }
 	
 
-bool USBFS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint8_t size, uint8_t *a, uint8_t *b) {
+bool USBFS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t size, uint8_t *a, uint8_t *b) {
 	if (id > 15) return false;
     _endpointBuffers[id].data = 0x40;
     _endpointBuffers[id].size = size;
@@ -320,3 +319,6 @@ bool USBFS::setAddress(uint8_t address) {
 	return true;
 }
 
+
+
+#endif

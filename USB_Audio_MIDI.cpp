@@ -67,8 +67,13 @@ uint32_t Audio_MIDI::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] = 5;                                // bDescriptorType = ENDPOINT
     buf[i++] = _epBulk;                          // bEndpointAddress
     buf[i++] = 0x02;                             // bmAttributes (0x02=bulk)
-    buf[i++] = 0x40;                     // |
-    buf[i++] = 0;                        // wMaxPacketSize
+    if (_manager->isHighSpeed()) {
+        buf[i++] = 0x00;                     // |
+        buf[i++] = 0x02;                        // wMaxPacketSize
+    } else {
+        buf[i++] = 0x40;                     // |
+        buf[i++] = 0x00;                        // wMaxPacketSize
+    }
     buf[i++] = 0;                                // bInterval
     buf[i++] = 0;                                // bRefresh
     buf[i++] = 0;                                // bSynchAddress
@@ -83,8 +88,13 @@ uint32_t Audio_MIDI::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] = 5;                                // bDescriptorType = ENDPOINT
     buf[i++] = 0x80 | _epBulk;                   // bEndpointAddress
     buf[i++] = 0x02;                             // bmAttributes (0x02=bulk)
-    buf[i++] = 0x40;                     // | 
-    buf[i++] = 0;                        // wMaxPacketSize
+    if (_manager->isHighSpeed()) {
+        buf[i++] = 0x00;                     // |
+        buf[i++] = 0x02;                        // wMaxPacketSize
+    } else {
+        buf[i++] = 0x40;                     // |
+        buf[i++] = 0x00;                        // wMaxPacketSize
+    }
     buf[i++] = 0;                                // bInterval
     buf[i++] = 0;                                // bRefresh
     buf[i++] = 0;                                // bSynchAddress
@@ -114,8 +124,13 @@ bool Audio_MIDI::getReportDescriptor(uint8_t ep, uint8_t target, uint8_t id, uin
 }
 
 void Audio_MIDI::configureEndpoints() {
-    _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 64, _bulkRxA, _bulkRxB);
-    _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 64, _bulkTxA, _bulkTxB);
+    if (_manager->isHighSpeed()) {
+        _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 512, _bulkRxA, _bulkRxB);
+        _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 512, _bulkTxA, _bulkTxB);
+    } else {
+        _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 64, _bulkRxA, _bulkRxB);
+        _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 64, _bulkTxA, _bulkTxB);
+    }
 }
 
 

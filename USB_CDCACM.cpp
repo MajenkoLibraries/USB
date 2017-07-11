@@ -86,16 +86,26 @@ uint32_t CDCACM::populateConfigurationDescriptor(uint8_t *buf) {
     buf[i++] = 0x05;       // endpoint descriptor
     buf[i++] = 0x80 | _epBulk;       // endpoint IN address
     buf[i++] = 0x02;       // attributes: bulk
-    buf[i++] = 0x40; 
-    buf[i++] = 0x00;     // packet size
+    if (_manager->isHighSpeed()) {
+        buf[i++] = 0x00; 
+        buf[i++] = 0x02;     // packet size
+    } else {
+        buf[i++] = 0x40; 
+        buf[i++] = 0x00;     // packet size
+    }
     buf[i++] = 0x00;       // interval (ms)
 
     buf[i++] = 7;          // length
     buf[i++] = 0x05;       // endpoint descriptor
     buf[i++] = _epBulk;       // endpoint OUT address
     buf[i++] = 0x02;       // attributes: bulk
-    buf[i++] = 0x40; 
-    buf[i++] = 0x00; // packet size
+    if (_manager->isHighSpeed()) {
+        buf[i++] = 0x00; 
+        buf[i++] = 0x02;     // packet size
+    } else {
+        buf[i++] = 0x40; 
+        buf[i++] = 0x00;     // packet size
+    }
     buf[i++] = 0x00;       // interval (ms)
     return i;
 }
@@ -115,8 +125,13 @@ bool CDCACM::getDescriptor(uint8_t ep, uint8_t target, uint8_t id, uint8_t maxle
 
 void CDCACM::configureEndpoints() {
     _manager->addEndpoint(_epControl, EP_OUT, EP_CTL, 8, _ctlA, _ctlB);
-    _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 64, _bulkRxA, _bulkRxB);
-    _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 64, _bulkTxA, _bulkTxB);
+    if (_manager->isHighSpeed()) {
+        _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 512, _bulkRxA, _bulkRxB);
+        _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 512, _bulkTxA, _bulkTxB);
+    } else {
+        _manager->addEndpoint(_epBulk, EP_IN, EP_BLK, 64, _bulkRxA, _bulkRxB);
+        _manager->addEndpoint(_epBulk, EP_OUT, EP_BLK, 64, _bulkTxA, _bulkTxB);
+    }
 }
 
 
@@ -183,7 +198,7 @@ bool CDCACM::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) 
 
     if (ep == _epBulk) {
         for (uint32_t i = 0; i < l; i++) {
-            int bufIndex = (_rxHead + 1) % 64;
+            int bufIndex = (_rxHead + 1) % CDCACM_BUFFER_SIZE;
             if (bufIndex != _rxTail) {
                 _rxBuffer[_rxHead] = data[i];
                 _rxHead = bufIndex;
@@ -208,7 +223,8 @@ size_t CDCACM::write(const uint8_t *b, size_t len) {
 
     size_t pos = 0;
     int32_t slen = len;
-    int32_t toSend = min(64, slen);
+    uint32_t packetSize = _manager->isHighSpeed() ? 512 : 64;
+    int32_t toSend = min(packetSize, slen);
     while (pos < len) {
         _manager->sendBuffer(_epBulk, &b[pos], toSend);
         pos += toSend;
@@ -224,7 +240,7 @@ int CDCACM::available() {
 int CDCACM::read() {
     if (_rxHead == _rxTail) return -1;
     uint8_t ch = _rxBuffer[_rxTail];
-    _rxTail = (_rxTail + 1) % 64;
+    _rxTail = (_rxTail + 1) % CDCACM_BUFFER_SIZE;
     return ch;
 }
 
