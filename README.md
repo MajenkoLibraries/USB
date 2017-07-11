@@ -15,6 +15,12 @@ USBFS usbDriver;
 USBManager USB(usbDriver, 0xDEAD, 0xBEEF); // Provide the VID and PID here
 ```
 
+Or if you want to use High Speed mode on a PIC32MZ chip change the driver to:
+
+```C++
+USBHS usbDriver;
+```
+
 You can also provide manufacturer, product and serial number (serial number is
 optional and if omitted will be generated from chip information):
 
