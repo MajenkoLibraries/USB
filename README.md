@@ -50,12 +50,12 @@ Next add the devices to the manager and start the USB system:
 
 ```C++
 void setup() {
-    USB.addDevice(&usbSerialPort);
-    USB.addDevice(&Keyboard);
-    USB.addDevice(&Mouse);
-    USB.addDevice(&Joystick);
-    USB.addDevice(&HID);
-    USB.addDevice(&MIDI);
+    USB.addDevice(usbSerialPort);
+    USB.addDevice(Keyboard);
+    USB.addDevice(Mouse);
+    USB.addDevice(Joystick);
+    USB.addDevice(HID);
+    USB.addDevice(MIDI);
 
     USB.begin();
 }
