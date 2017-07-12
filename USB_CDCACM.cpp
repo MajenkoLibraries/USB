@@ -227,6 +227,8 @@ bool CDCACM::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) 
     }
 
     if (ep == _epBulk) {
+
+
         for (uint32_t i = 0; i < l; i++) {
             uint32_t bufIndex = (_rxHead + 1) % CDCACM_BUFFER_SIZE;
             if (bufIndex != _rxTail) {
@@ -234,6 +236,13 @@ bool CDCACM::onOutPacket(uint8_t ep, uint8_t target, uint8_t *data, uint32_t l) 
                 _rxHead = bufIndex;
             }
         }
+
+        int remaining = (_rxTail - _rxHead + CDCACM_BUFFER_SIZE) % CDCACM_BUFFER_SIZE;
+
+        if ((remaining < CDCACM_BUFFER_HIGH) && (_rxHead != _rxTail)) {
+            _manager->haltEndpoint(_epBulk);
+        }
+
         return true;
     }
     return false;
@@ -264,13 +273,20 @@ size_t CDCACM::write(const uint8_t *b, size_t len) {
 }
 
 int CDCACM::available() {
-    return (64 + _rxHead - _rxTail) % 64;
+    return (CDCACM_BUFFER_SIZE + _rxHead - _rxTail) % CDCACM_BUFFER_SIZE;
 }
 
 int CDCACM::read() {
     if (_rxHead == _rxTail) return -1;
     uint8_t ch = _rxBuffer[_rxTail];
     _rxTail = (_rxTail + 1) % CDCACM_BUFFER_SIZE;
+
+    int remaining = (_rxTail - _rxHead + CDCACM_BUFFER_SIZE) % CDCACM_BUFFER_SIZE;
+
+    if ((remaining >= CDCACM_BUFFER_HIGH) || (_rxHead == _rxTail)) {
+        _manager->resumeEndpoint(_epBulk);
+    }
+
     return ch;
 }
 

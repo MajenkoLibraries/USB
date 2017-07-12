@@ -128,6 +128,8 @@ class USBDriver {
         }
 
         virtual bool isHighSpeed() = 0;
+        virtual void haltEndpoint(uint8_t ep) = 0;
+        virtual void resumeEndpoint(uint8_t ep) = 0;
 
         USBManager *_manager;
 };
@@ -160,6 +162,8 @@ class USBFS : public USBDriver {
 
         bool isHighSpeed() { return false; }
 
+        void haltEndpoint(uint8_t ep) {}
+        void resumeEndpoint(uint8_t ep) {}
 
 		void handleInterrupt();
 
@@ -202,6 +206,9 @@ class USBHS : public USBDriver {
 
 
 		void handleInterrupt();
+
+        void haltEndpoint(uint8_t ep);
+        void resumeEndpoint(uint8_t ep);
 
         using USBDriver::_manager;
 
@@ -271,6 +278,14 @@ class USBManager {
             return _driver->canEnqueuePacket(ep);
         }
 
+        void haltEndpoint(uint8_t ep) {
+            _driver->haltEndpoint(ep);
+        }
+
+        void resumeEndpoint(uint8_t ep) {
+            _driver->resumeEndpoint(ep);
+        }
+
         void end() {}
 
 };
@@ -307,21 +322,23 @@ class CDCACM : public USBDevice, public Stream {
         uint8_t _dataBits;
         uint8_t _parity;
 #if defined (__PIC32MX__)
-        uint8_t _txBuffer[64];
-        uint8_t _rxBuffer[64];
+//        uint8_t _txBuffer[64];
+#define CDCACM_BUFFER_SIZE 256
+        uint8_t _rxBuffer[CDCACM_BUFFER_SIZE];
         uint8_t _bulkRxA[64];
         uint8_t _bulkRxB[64];
         uint8_t _bulkTxA[64];
         uint8_t _bulkTxB[64];
-#define CDCACM_BUFFER_SIZE 64
+#define CDCACM_BUFFER_HIGH 64
 #elif defined(__PIC32MZ__)
-        uint8_t _txBuffer[512];
-        uint8_t _rxBuffer[512];
+//        uint8_t _txBuffer[2048];
+#define CDCACM_BUFFER_SIZE 2048
+        uint8_t _rxBuffer[CDCACM_BUFFER_SIZE];
         uint8_t _bulkRxA[512];
         uint8_t _bulkRxB[512];
         uint8_t _bulkTxA[512];
         uint8_t _bulkTxB[512];
-#define CDCACM_BUFFER_SIZE 512
+#define CDCACM_BUFFER_HIGH 512
 #endif
         volatile uint32_t _txPos;
         volatile uint32_t _rxHead;
