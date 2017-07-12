@@ -584,7 +584,6 @@ void USBHS::haltEndpoint(uint8_t ep) {
     USBCSR3bits.ENDPOINT = ep;
     if (!USBIENCSR0bits.SENDSTALL) {
         USBIENCSR0bits.SENDSTALL = 1;
-        Serial.println("STALL");
     }
     USBCSR3bits.ENDPOINT = oep;
 }
@@ -595,7 +594,6 @@ void USBHS::resumeEndpoint(uint8_t ep) {
     if (USBIENCSR0bits.SENDSTALL) {
         USBIENCSR0bits.SENDSTALL = 0;
         USBIENCSR0bits.CLRDT = 1;
-        Serial.println("RESUME");
     }
     USBCSR3bits.ENDPOINT = oep;
 }
