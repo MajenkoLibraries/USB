@@ -153,6 +153,19 @@ bool USBHS::disableUSB() {
 bool USBHS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t size, uint8_t *a, uint8_t *b) {
 	if (id > 7) return false;
 
+    uint8_t sz = 0;
+    if (size <= 8192)   sz = 0b1101;
+    if (size <= 4096)   sz = 0b1100;
+    if (size <= 2048)   sz = 0b1011;
+    if (size <= 1024)   sz = 0b1010;
+    if (size <= 512)    sz = 0b1001;
+    if (size <= 256)    sz = 0b1000;
+    if (size <= 128)    sz = 0b0111;
+    if (size <= 64)     sz = 0b0110;
+    if (size <= 32)     sz = 0b0101;
+    if (size <= 16)     sz = 0b0100;
+    if (size <= 8)      sz = 0b0011;
+
     if (id == 0) {
         USBCSR1bits.EP0IE = 1;
         USBE0CSR0bits.TXMAXP = size;
@@ -169,11 +182,15 @@ bool USBHS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t si
 
         uint8_t ep = USBCSR3bits.ENDPOINT;
         USBCSR3bits.ENDPOINT = id;
+
+
         USBIENCSR0bits.TXMAXP = size;
-        if (type == EP_ISO) {
-            USBIENCSR1bits.ISO = 1;
-        } else {
-            USBIENCSR1bits.ISO = 0;
+
+        switch (type) {
+            case EP_CTL: USBIENCSR3bits.PROTOCOL = 0b00; break;
+            case EP_ISO: USBIENCSR3bits.PROTOCOL = 0b01; break;
+            case EP_BLK: USBIENCSR3bits.PROTOCOL = 0b10; break;
+            case EP_INT: USBIENCSR3bits.PROTOCOL = 0b11; break;
         }
 
         _endpointBuffers[id].size = size;
@@ -181,8 +198,10 @@ bool USBHS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t si
         if (direction == EP_IN) {
             _endpointBuffers[id].rx[0] = a;
             _endpointBuffers[id].rx[1] = b;
-            USBIENCSR3bits.RXFIFOSZ = size;
             USBFIFOAbits.RXFIFOAD = _fifoOffset;
+            USBIENCSR0bits.CLRDT = 1;
+            USBOTGbits.RXFIFOSZ = sz;
+
             _fifoOffset += size / 8;
             switch (id) {
                 case 1: USBCSR2bits.EP1RXIE = 1;
@@ -197,8 +216,10 @@ bool USBHS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t si
         } else if (direction == EP_OUT) {
             _endpointBuffers[id].tx[0] = a;
             _endpointBuffers[id].tx[1] = b;
-            USBIENCSR3bits.TXFIFOSZ = size;
             USBFIFOAbits.TXFIFOAD = _fifoOffset;
+            USBIENCSR0bits.CLRDT = 1;
+            USBOTGbits.RXFIFOSZ = sz;
+
             _fifoOffset += size / 8;
             switch (id) {
                 case 1: USBCSR1bits.EP1TXIE = 1;
@@ -211,14 +232,15 @@ bool USBHS::addEndpoint(uint8_t id, uint8_t direction, uint8_t type, uint32_t si
             }
         }
 
+        if (type == EP_ISO) {
+            USBIENCSR1bits.ISO = 1;
+        } else {
+            USBIENCSR1bits.ISO = 0;
+        }
+
+
         USBIENCSR3bits.SPEED = 0b01; // High speed
 
-        switch (type) {
-            case EP_CTL: USBIENCSR3bits.PROTOCOL = 0b00; break;
-            case EP_ISO: USBIENCSR3bits.PROTOCOL = 0b01; break;
-            case EP_BLK: USBIENCSR3bits.PROTOCOL = 0b10; break;
-            case EP_INT: USBIENCSR3bits.PROTOCOL = 0b11; break;
-        }
 
         USBCSR3bits.ENDPOINT = ep;
     }
@@ -324,7 +346,29 @@ void USBHS::handleInterrupt() {
     bool __attribute__((unused)) isDISCONIF = (csr2 & (1 << 21)) ? true : false;
     bool __attribute__((unused)) isSESSRQIF = (csr2 & (1 << 22)) ? true : false;
     bool __attribute__((unused)) isVBUSERRIF = (csr2 & (1 << 23)) ? true : false;
-
+#ifdef DEBUG
+    if (isEP0IF) Serial.println("EP0IF");
+    if (isEP1TXIF) Serial.println("EP1TXIF");
+    if (isEP2TXIF) Serial.println("EP2TXIF");
+    if (isEP3TXIF) Serial.println("EP3TXIF");
+    if (isEP4TXIF) Serial.println("EP4TXIF");
+    if (isEP5TXIF) Serial.println("EP5TXIF");
+    if (isEP6TXIF) Serial.println("EP6TXIF");
+    if (isEP7TXIF) Serial.println("EP7TXIF");
+    if (isEP1RXIF) Serial.println("EP1RXIF");
+    if (isEP2RXIF) Serial.println("EP2RXIF");
+    if (isEP3RXIF) Serial.println("EP3RXIF");
+    if (isEP4RXIF) Serial.println("EP4RXIF");
+    if (isEP5RXIF) Serial.println("EP5RXIF");
+    if (isEP6RXIF) Serial.println("EP6RXIF");
+    if (isEP7RXIF) Serial.println("EP7RXIF");
+    if (isRESUMEIF) Serial.println("RESUMEIF");
+    if (isRESETIF) Serial.println("RESETIF");
+    if (isSOFIF) Serial.println("SOFIF");
+    if (isDISCONIF) Serial.println("DISCONIF");
+    if (isSESSRQIF) Serial.println("SESSRQIF");
+    if (isVBUSERRIF) Serial.println("VBUSERRIF");
+#endif
     if (isRESETIF) {
         addEndpoint(0, EP_IN, EP_CTL, 64, _ctlRxA, _ctlRxB);
         addEndpoint(0, EP_OUT, EP_CTL, 64, _ctlTxA, _ctlTxB);
@@ -389,12 +433,13 @@ void USBHS::handleInterrupt() {
         USBCSR3bits.ENDPOINT = 3;
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
-        uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (uint32_t i = 0; i < WFB(pktlen); i++) {
-            buf[i] = USBFIFO3;
+
+        fifo = (uint8_t *)&USBFIFO3;
+        for (uint32_t i = 0; i < pktlen; i++) {
+            _endpointBuffers[3].rx[0][i] = *(fifo + (i & 3));
         }
+        
         USBIENCSR1bits.RXPKTRDY = 0;
-        memcpy(_endpointBuffers[3].rx[0], buf, pktlen);
         if (_manager) _manager->onOutPacket(3, _endpointBuffers[3].rx[0], pktlen);
 
         USBCSR3bits.ENDPOINT = oep;
@@ -405,12 +450,13 @@ void USBHS::handleInterrupt() {
         USBCSR3bits.ENDPOINT = 4;
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
-        uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (uint32_t i = 0; i < WFB(pktlen); i++) {
-            buf[i] = USBFIFO4;
+
+        fifo = (uint8_t *)&USBFIFO4;
+        for (uint32_t i = 0; i < pktlen; i++) {
+            _endpointBuffers[4].rx[0][i] = *(fifo + (i & 3));
         }
+        
         USBIENCSR1bits.RXPKTRDY = 0;
-        memcpy(_endpointBuffers[4].rx[0], buf, pktlen);
         if (_manager) _manager->onOutPacket(4, _endpointBuffers[4].rx[0], pktlen);
 
         USBCSR3bits.ENDPOINT = oep;
@@ -421,12 +467,13 @@ void USBHS::handleInterrupt() {
         USBCSR3bits.ENDPOINT = 5;
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
-        uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (uint32_t i = 0; i < WFB(pktlen); i++) {
-            buf[i] = USBFIFO5;
+
+        fifo = (uint8_t *)&USBFIFO5;
+        for (uint32_t i = 0; i < pktlen; i++) {
+            _endpointBuffers[5].rx[0][i] = *(fifo + (i & 3));
         }
+        
         USBIENCSR1bits.RXPKTRDY = 0;
-        memcpy(_endpointBuffers[5].rx[0], buf, pktlen);
         if (_manager) _manager->onOutPacket(5, _endpointBuffers[5].rx[0], pktlen);
 
         USBCSR3bits.ENDPOINT = oep;
@@ -437,12 +484,13 @@ void USBHS::handleInterrupt() {
         USBCSR3bits.ENDPOINT = 6;
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
-        uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (uint32_t i = 0; i < WFB(pktlen); i++) {
-            buf[i] = USBFIFO6;
+
+        fifo = (uint8_t *)&USBFIFO6;
+        for (uint32_t i = 0; i < pktlen; i++) {
+            _endpointBuffers[6].rx[0][i] = *(fifo + (i & 3));
         }
+        
         USBIENCSR1bits.RXPKTRDY = 0;
-        memcpy(_endpointBuffers[6].rx[0], buf, pktlen);
         if (_manager) _manager->onOutPacket(6, _endpointBuffers[6].rx[0], pktlen);
 
         USBCSR3bits.ENDPOINT = oep;
@@ -453,12 +501,13 @@ void USBHS::handleInterrupt() {
         USBCSR3bits.ENDPOINT = 7;
 
         uint32_t pktlen = USBIENCSR2bits.RXCNT;
-        uint32_t *buf = (uint32_t *)alloca(WFB(pktlen));
-        for (uint32_t i = 0; i < WFB(pktlen); i++) {
-            buf[i] = USBFIFO7;
+
+        fifo = (uint8_t *)&USBFIFO7;
+        for (uint32_t i = 0; i < pktlen; i++) {
+            _endpointBuffers[7].rx[0][i] = *(fifo + (i & 3));
         }
+        
         USBIENCSR1bits.RXPKTRDY = 0;
-        memcpy(_endpointBuffers[7].rx[0], buf, pktlen);
         if (_manager) _manager->onOutPacket(7, _endpointBuffers[7].tx[0], pktlen);
 
         USBCSR3bits.ENDPOINT = oep;
