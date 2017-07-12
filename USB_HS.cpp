@@ -582,14 +582,21 @@ bool USBHS::setAddress(uint8_t address) {
 void USBHS::haltEndpoint(uint8_t ep) {
     uint8_t oep = USBCSR3bits.ENDPOINT;
     USBCSR3bits.ENDPOINT = ep;
-    if (!USBIENCSR0bits.SENDSTALL) USBIENCSR0bits.SENDSTALL = 1;
+    if (!USBIENCSR0bits.SENDSTALL) {
+        USBIENCSR0bits.SENDSTALL = 1;
+        Serial.println("STALL");
+    }
     USBCSR3bits.ENDPOINT = oep;
 }
 
 void USBHS::resumeEndpoint(uint8_t ep) {
     uint8_t oep = USBCSR3bits.ENDPOINT;
     USBCSR3bits.ENDPOINT = ep;
-    if (USBIENCSR0bits.SENDSTALL) USBIENCSR0bits.SENDSTALL = 0;
+    if (USBIENCSR0bits.SENDSTALL) {
+        USBIENCSR0bits.SENDSTALL = 0;
+        USBIENCSR0bits.CLRDT = 1;
+        Serial.println("RESUME");
+    }
     USBCSR3bits.ENDPOINT = oep;
 }
 
