@@ -41,30 +41,45 @@
 USBFS *USBFS::_this;
 
 #ifdef PIN_LED_TX
-static volatile uint32_t gTXLedTimeout = 0;
-# define TXOn() digitalWrite(PIN_LED_TX, HIGH); gTXLedTimeout = millis();
-static void TXLedSwitchOff(int id, void *tptr) {
-    if (gTXLedTimeout > 0) {
-        if (millis() - gTXLedTimeout >= 10) {
-            digitalWrite(PIN_LED_TX, LOW);
-            gTXLedTimeout = 0;
-        }
+volatile static uint32_t TXLedTimeout = 0;
+
+static uint32_t TXLedSwitchOff(uint32_t t) {
+    TXLedTimeout++;
+    if (TXLedTimeout > 1) {
+        digitalWrite(PIN_LED_TX, LOW);
+        detachCoreTimerService(TXLedSwitchOff);
+        TXLedTimeout = 0;
     }
+    return t + 50000;
 }
+
+static void TXOn() {
+    digitalWrite(PIN_LED_TX, HIGH);
+    TXLedTimeout = 0;
+    attachCoreTimerService(TXLedSwitchOff);
+}
+
 #else
 # define TXOn()
 #endif
 
 #ifdef PIN_LED_RX
-static volatile uint32_t gRXLedTimeout = 0;
-# define RXOn() digitalWrite(PIN_LED_RX, HIGH); gRXLedTimeout = millis();
-static void RXLedSwitchOff(int id, void *tptr) {
-    if (gRXLedTimeout > 0) {
-        if (millis() - gRXLedTimeout >= 10) {
-            digitalWrite(PIN_LED_RX, LOW);
-            gRXLedTimeout = 0;
-        }
+volatile static uint32_t RXLedTimeout = 0;
+
+static uint32_t RXLedSwitchOff(uint32_t t) {
+    RXLedTimeout++;
+    if (RXLedTimeout > 1) {
+        digitalWrite(PIN_LED_RX, LOW);
+        detachCoreTimerService(RXLedSwitchOff);
+        RXLedTimeout = 0;
     }
+    return t + 50000;
+}
+
+static void RXOn() {
+    digitalWrite(PIN_LED_RX, HIGH);
+    RXLedTimeout = 0;
+    attachCoreTimerService(RXLedSwitchOff);
 }
 #else
 # define RXOn()
@@ -75,13 +90,11 @@ bool USBFS::enableUSB() {
 #ifdef PIN_LED_TX
     pinMode(PIN_LED_TX, OUTPUT);
     digitalWrite(PIN_LED_TX, LOW);
-    createTask(TXLedSwitchOff, 10, TASK_ENABLE, NULL);
 #endif
 
 #ifdef PIN_LED_RX
     pinMode(PIN_LED_RX, OUTPUT);
     digitalWrite(PIN_LED_RX, LOW);
-    createTask(RXLedSwitchOff, 10, TASK_ENABLE, NULL);
 #endif
 
     U1BDTP1 = (uint8_t)(KVA_TO_PA((uint32_t)&_bufferDescriptorTable[0][0]) >> 8);
